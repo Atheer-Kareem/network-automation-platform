@@ -7,7 +7,10 @@ authors = [
     { name = "Atheer-Kareem", email = "atheer.kareem.tech@gmail.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pydantic>=2.13.4",
+    "pyyaml>=6.0.3",
+]
 
 [project.scripts]
 network-automation-platform = "network_automation_platform:main"
