@@ -1,0 +1,17 @@
+[project]
+name = "network-automation-platform"
+version = "0.1.0"
+description = "A production-style network automation and NetDevOps platform for repeatable, validated network operations."
+readme = "README.md"
+authors = [
+    { name = "Atheer-Kareem", email = "atheer.kareem.tech@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+network-automation-platform = "network_automation_platform:main"
+
+[build-system]
+requires = ["uv_build>=0.12.2,<0.13.0"]
+build-backend = "uv_build"
