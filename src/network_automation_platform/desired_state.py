@@ -9,10 +9,15 @@ class InterfaceDesiredState(BaseModel):
     description: str | None = None
     ipv4: IPv4Interface | None = None
     enabled: bool = True
+    parent: str | None = None
+    vlan_id: int | None = Field(default=None, ge=1, le=4094)
+    mode: Literal["access", "trunk"] | None = None
+    access_vlan: int | None = Field(default=None, ge=1, le=4094)
+    allowed_vlans: list[int] = Field(default_factory=list)
 
 
 class VlanDesiredState(BaseModel):
-    vlan_id: int
+    vlan_id: int = Field(ge=1, le=4094)
     name: str
 
 
@@ -29,6 +34,7 @@ class DeviceDesiredState(BaseModel):
     interfaces: list[InterfaceDesiredState] = Field(default_factory=list)
     vlans: list[VlanDesiredState] = Field(default_factory=list)
     ospf: OspfDesiredState | None = None
+    default_gateway: str | None = None
 
 
 class BranchDesiredState(BaseModel):

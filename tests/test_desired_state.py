@@ -43,3 +43,51 @@ def test_switch_desired_state_contains_standard_vlans() -> None:
     vlan_ids = {vlan.vlan_id for vlan in switch.vlans}
 
     assert vlan_ids == {10, 20, 99}
+
+def test_router_desired_state_contains_vlan_gateways() -> None:
+    intent = load_branch_intent(Path("intent/branches/branch-01.yaml"))
+    desired_state = build_branch_desired_state(intent)
+
+    router = next(
+        device
+        for device in desired_state.devices
+        if device.role == "branch_router"
+    )
+
+    users = next(
+        interface
+        for interface in router.interfaces
+        if interface.name == "users"
+    )
+
+    assert users.parent == "lan"
+    assert users.vlan_id == 10
+    assert str(users.ipv4) == "10.101.10.1/24"
+
+def test_switch_desired_state_contains_trunk_and_management_svi() -> None:
+    intent = load_branch_intent(Path("intent/branches/branch-01.yaml"))
+    desired_state = build_branch_desired_state(intent)
+
+    switch = next(
+        device
+        for device in desired_state.devices
+        if device.role == "branch_switch"
+    )
+
+    uplink = next(
+        interface
+        for interface in switch.interfaces
+        if interface.name == "uplink"
+    )
+
+    management_svi = next(
+        interface
+        for interface in switch.interfaces
+        if interface.name == "management_svi"
+    )
+
+    assert uplink.mode == "trunk"
+    assert uplink.allowed_vlans == [10, 20, 99]
+    assert management_svi.vlan_id == 99
+    assert str(management_svi.ipv4) == "10.101.99.21/24"
+    assert switch.default_gateway == "10.101.99.1"
