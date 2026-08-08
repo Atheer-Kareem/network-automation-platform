@@ -1,0 +1,35 @@
+site:
+  id: branch-01
+  name: Melbourne Branch 01
+  region: vic
+
+device_roles:
+  router:
+    hostname: br01-rtr01
+    platform: cisco_ios
+    management_ip: 10.101.99.11
+
+  switch:
+    hostname: br01-sw01
+    platform: cisco_ios
+    management_ip: 10.101.99.21
+
+networks:
+  users:
+    vlan_id: 10
+    prefix: 10.101.10.0/24
+
+  voice:
+    vlan_id: 20
+    prefix: 10.101.20.0/24
+
+  management:
+    vlan_id: 99
+    prefix: 10.101.99.0/24
+
+wan:
+  transit_prefix: 10.101.255.0/30
+
+routing:
+  protocol: ospf
+  area: 0
