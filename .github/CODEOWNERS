@@ -1,0 +1,23 @@
+# Default repository ownership
+
+- @Atheer-Kareem
+
+# Protect repository governance and automation
+
+/.github/ @Atheer-Kareem
+
+# Core application code
+
+/src/ @Atheer-Kareem
+
+# Tests
+
+/tests/ @Atheer-Kareem
+
+# Architecture and operational documentation
+
+/docs/ @Atheer-Kareem
+
+# Network intent
+
+/intent/ @Atheer-Kareem
