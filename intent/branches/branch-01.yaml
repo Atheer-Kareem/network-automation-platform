@@ -6,12 +6,12 @@ site:
 device_roles:
   router:
     hostname: br01-rtr01
-    platform: cisco_ios
+    platform: cisco_ios_c7200
     management_ip: 10.101.99.11
 
   switch:
     hostname: br01-sw01
-    platform: cisco_ios
+    platform: cisco_iosv_l2
     management_ip: 10.101.99.21
 
 networks:
