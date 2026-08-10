@@ -9,3 +9,5 @@ __pycache__/
 scratch/
 experiments/
 tmp/
+# Local SSH trust state
+inventory/ssh/known_hosts
