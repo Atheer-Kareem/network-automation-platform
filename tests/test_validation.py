@@ -66,6 +66,7 @@ def test_validate_device_state_fails_wrong_interface_ip() -> None:
                 ipv4=IPv4Address("192.168.64.11"),
                 status="up",
                 protocol="up",
+                admin_enabled=True,
             )
         ],
         routes=[
@@ -114,6 +115,7 @@ def test_validate_device_state_fails_missing_route() -> None:
                 ipv4=IPv4Address("192.168.64.10"),
                 status="up",
                 protocol="up",
+                admin_enabled=True,
             )
         ],
         routes=[],
@@ -155,6 +157,7 @@ def test_validate_device_state_fails_wrong_route_protocol() -> None:
                 ipv4=IPv4Address("192.168.64.10"),
                 status="up",
                 protocol="up",
+                admin_enabled=True,
             )
         ],
         routes=[
@@ -202,6 +205,7 @@ def test_validate_device_state_passes() -> None:
                 ipv4=IPv4Address("192.168.64.10"),
                 status="up",
                 protocol="up",
+                admin_enabled=True,
             )
         ],
         routes=[

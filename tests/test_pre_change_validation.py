@@ -28,11 +28,13 @@ def test_pre_change_validation_passes() -> None:
                 ipv4=IPv4Address("192.168.64.10"),
                 status="up",
                 protocol="up",
+                admin_enabled=True,
             ),
             InterfaceState(
                 name="FastEthernet1/0",
                 status="administratively down",
                 protocol="down",
+                admin_enabled=False,
             ),
         ],
         routes=[

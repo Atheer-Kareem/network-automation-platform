@@ -59,6 +59,7 @@ def build_desired_state_expectation(
                     if interface.ipv4 is not None
                     else None
                 ),
+                admin_enabled=interface.enabled,
             )
         )
 
