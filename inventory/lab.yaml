@@ -1,0 +1,5 @@
+devices:
+  - hostname: br01-rtr01
+    host: 192.168.64.10
+    port: 22
+    driver: cisco_ios
