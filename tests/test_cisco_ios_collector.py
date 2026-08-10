@@ -46,6 +46,8 @@ def test_parse_ip_interface_brief() -> None:
     assert interfaces[1].ipv4 is None
     assert interfaces[1].status == "administratively down"
     assert interfaces[1].protocol == "down"
+    assert interfaces[0].admin_enabled is True
+    assert interfaces[1].admin_enabled is False
 
 def test_parse_ip_interface_brief_rejects_empty_output() -> None:
     with pytest.raises(

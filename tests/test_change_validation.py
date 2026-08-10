@@ -49,6 +49,7 @@ def test_run_post_change_validation_passes() -> None:
                 ipv4=IPv4Address("10.101.255.1"),
                 status="up",
                 protocol="up",
+                admin_enabled=True,
             )
         ],
         routes=[
@@ -91,6 +92,7 @@ def test_run_post_change_validation_fails() -> None:
                 ipv4=IPv4Address("192.168.64.10"),
                 status="up",
                 protocol="up",
+                admin_enabled=True,
             )
         ],
         routes=[
@@ -151,6 +153,7 @@ def test_run_pre_change_validation_returns_pre_change_phase() -> None:
                 ipv4=IPv4Address("192.168.64.10"),
                 status="up",
                 protocol="up",
+                admin_enabled=True,
             )
         ],
         routes=[

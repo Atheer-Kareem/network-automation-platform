@@ -35,6 +35,7 @@ def test_validate_device_against_desired_state() -> None:
                 ipv4=IPv4Address("10.101.255.1"),
                 status="up",
                 protocol="up",
+                admin_enabled=True,
             )
         ],
         routes=[

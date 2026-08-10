@@ -8,6 +8,7 @@ class InterfaceState(BaseModel):
     ipv4: IPv4Address | None = None
     status: str
     protocol: str
+    admin_enabled: bool
 
 
 class RouteState(BaseModel):

@@ -37,6 +37,7 @@ def parse_ip_interface_brief(
                 ipv4=None if ip_address in ("", "unassigned") else ip_address,
                 status=interface["status"],
                 protocol=interface["proto"],
+                admin_enabled=interface["status"] != "administratively down",
             )
         )
 

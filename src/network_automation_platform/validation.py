@@ -16,6 +16,7 @@ class InterfaceExpectation(BaseModel):
     ipv4: IPv4Address | None = None
     status: str | None = None
     protocol: str | None = None
+    admin_enabled: bool | None = None
 
 
 class RouteExpectation(BaseModel):
@@ -126,6 +127,15 @@ def validate_device_state(
             failures.append(
                 f"protocol expected {expected.protocol}, "
                 f"got {actual.protocol}"
+            )
+
+        if (
+            expected.admin_enabled is not None
+            and actual.admin_enabled != expected.admin_enabled
+        ):
+            failures.append(
+                f"admin enabled expected {expected.admin_enabled}, "
+                f"got {actual.admin_enabled}"
             )
 
         if failures:
