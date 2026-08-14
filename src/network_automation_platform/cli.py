@@ -2,8 +2,8 @@ import argparse
 import sys
 from pathlib import Path
 
+from network_automation_platform.branch_plan import plan_branch
 from network_automation_platform.branch_validation import (
-    BranchValidationError,
     validate_branch,
 )
 from network_automation_platform.collectors.cisco_ios import (
@@ -13,7 +13,11 @@ from network_automation_platform.connection_settings import (
     ConnectionSettingsError,
     load_connection_settings,
 )
+from network_automation_platform.device_resolution import (
+    DeviceResolutionError,
+)
 from network_automation_platform.inventory import load_device_inventory
+from network_automation_platform.validation import ValidationStatus
 from network_automation_platform.validation_expectations import (
     ValidationExpectationError,
 )
@@ -38,6 +42,14 @@ def build_parser() -> argparse.ArgumentParser:
         "branch",
         help="Branch identifier, for example branch-01",
     )
+    plan_parser = subparsers.add_parser(
+    "plan",
+    help="Show branch drift and desired candidate configuration",
+)
+    plan_parser.add_argument(
+        "branch",
+        help="Branch identifier, for example branch-01",
+    )
 
     return parser
 
@@ -58,10 +70,9 @@ def run_validate(branch_id: str) -> int:
         )
     except (
         FileNotFoundError,
-        BranchValidationError,
         ConnectionSettingsError,
         StateCollectionError,
-        ValidationExpectationError,
+        DeviceResolutionError,
     ) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
@@ -89,6 +100,62 @@ def run_validate(branch_id: str) -> int:
     print("RESULT: DRIFT DETECTED")
     return 1
 
+def run_plan(branch_id: str) -> int:
+    intent_path = Path("intent/branches") / f"{branch_id}.yaml"
+    inventory_path = Path("inventory/lab.yaml")
+
+    try:
+        inventory = load_device_inventory(inventory_path)
+        settings = load_connection_settings()
+
+        result = plan_branch(
+            branch_id,
+            intent_path=intent_path,
+            inventory=inventory,
+            settings=settings,
+        )
+    except (
+        FileNotFoundError,
+        DeviceResolutionError,
+        ConnectionSettingsError,
+        StateCollectionError,
+        ValidationExpectationError,
+    ) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
+
+    print(f"Branch: {result.branch_id}")
+    print()
+
+    for device in result.devices:
+        status = (
+            "DRIFT"
+            if not device.validation.passed
+            else "COMPLIANT"
+        )
+
+        print(f"{device.hostname}: {status}")
+
+        for check in device.validation.checks:
+            if check.status == ValidationStatus.FAIL:
+                print(
+                    f"  [FAIL] {check.name}: "
+                    f"{check.message}"
+                )
+
+        print()
+        print("Candidate configuration:")
+        print("------------------------")
+        print(device.candidate_config)
+        print("------------------------")
+        print()
+
+    if result.has_drift:
+        print("RESULT: DRIFT DETECTED")
+        return 1
+
+    print("RESULT: NO DRIFT")
+    return 0
 
 def main() -> None:
     parser = build_parser()
@@ -96,3 +163,6 @@ def main() -> None:
 
     if args.command == "validate":
         raise SystemExit(run_validate(args.branch))
+
+    if args.command == "plan":
+        raise SystemExit(run_plan(args.branch))

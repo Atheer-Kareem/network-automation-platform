@@ -2,51 +2,48 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from network_automation_platform.collectors.cisco_ios import (
-    collect_device_state,
-)
-from network_automation_platform.connection_settings import (
-    ConnectionSettings,
-)
+from network_automation_platform.collectors.cisco_ios import collect_device_state
+from network_automation_platform.connection_settings import ConnectionSettings
 from network_automation_platform.device_resolution import (
     find_inventory_device,
 )
 from network_automation_platform.inventory import DeviceInventory
 from network_automation_platform.models import load_branch_intent
-from network_automation_platform.planning import (
-    build_branch_desired_state,
-)
+from network_automation_platform.planning import build_branch_desired_state
+from network_automation_platform.renderers.cisco_ios import render_device
 from network_automation_platform.validation import ValidationReport
 from network_automation_platform.validation_service import (
     validate_device_against_desired_state,
 )
 
 
-class DeviceValidationResult(BaseModel):
+class DevicePlanResult(BaseModel):
     hostname: str
-    report: ValidationReport
+    candidate_config: str
+    validation: ValidationReport
 
 
-class BranchValidationResult(BaseModel):
+class BranchPlanResult(BaseModel):
     branch_id: str
-    devices: list[DeviceValidationResult] = Field(default_factory=list)
+    devices: list[DevicePlanResult] = Field(default_factory=list)
 
     @property
-    def passed(self) -> bool:
-        return all(device.report.passed for device in self.devices)
+    def has_drift(self) -> bool:
+        return any(
+            not device.validation.passed
+            for device in self.devices
+        )
 
-
-def validate_branch(
+def plan_branch(
     branch_id: str,
-    *,
     intent_path: Path,
     inventory: DeviceInventory,
     settings: ConnectionSettings,
-) -> BranchValidationResult:
+) -> BranchPlanResult:
     intent = load_branch_intent(intent_path)
     desired_branch = build_branch_desired_state(intent)
 
-    results: list[DeviceValidationResult] = []
+    results: list[DevicePlanResult] = []
 
     for desired_device in desired_branch.devices:
         inventory_device = find_inventory_device(
@@ -59,19 +56,22 @@ def validate_branch(
             settings,
         )
 
-        report = validate_device_against_desired_state(
+        validation = validate_device_against_desired_state(
             desired_device,
             state,
         )
 
+        candidate_config = render_device(desired_device)
+
         results.append(
-            DeviceValidationResult(
+            DevicePlanResult(
                 hostname=desired_device.hostname,
-                report=report,
+                candidate_config=candidate_config,
+                validation=validation,
             )
         )
 
-    return BranchValidationResult(
+    return BranchPlanResult(
         branch_id=branch_id,
         devices=results,
     )
