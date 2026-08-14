@@ -25,19 +25,44 @@ class RouteExpectation(BaseModel):
     next_hop: IPv4Address | None = None
     outgoing_interface: str | None = None
 
+class VlanExpectation(BaseModel):
+    vlan_id: int
+    name: str | None = None
+    status: str | None = None
+
+
+class SwitchportExpectation(BaseModel):
+    interface: str
+    switchport_enabled: bool | None = None
+    administrative_mode: str | None = None
+    access_vlan: int | None = None
+    native_vlan: int | None = None
+    allowed_vlans: list[int] | None = None
 
 class ValidationExpectation(BaseModel):
     interfaces: list[InterfaceExpectation] = Field(default_factory=list)
     routes: list[RouteExpectation] = Field(default_factory=list)
+    vlans: list[VlanExpectation] = Field(default_factory=list)
+    switchports: list[SwitchportExpectation] = Field(
+        default_factory=list
+    )
 
     @model_validator(mode="after")
     def require_checks(self) -> "ValidationExpectation":
-        if not self.interfaces and not self.routes:
+        if not any(
+            (
+                self.interfaces,
+                self.routes,
+                self.vlans,
+                self.switchports,
+            )
+        ):
             raise ValueError(
                 "At least one validation expectation is required"
             )
 
         return self
+
 
 
 class ValidationCheck(BaseModel):
@@ -232,6 +257,159 @@ def validate_device_state(
                 message=message,
             )
         )
+
+    for expected in expectation.vlans:
+        actual = next(
+            (
+                vlan
+                for vlan in state.vlans
+                if vlan.vlan_id == expected.vlan_id
+            ),
+            None,
+        )
+
+        if actual is None:
+            checks.append(
+                ValidationCheck(
+                    name=f"vlan:{expected.vlan_id}",
+                    status=ValidationStatus.FAIL,
+                    message=f"VLAN {expected.vlan_id} is missing",
+                )
+            )
+            continue
+
+        failures: list[str] = []
+
+        if (
+            expected.name is not None
+            and actual.name != expected.name
+        ):
+            failures.append(
+                f"name expected {expected.name}, got {actual.name}"
+            )
+
+        if (
+            expected.status is not None
+            and actual.status != expected.status
+        ):
+            failures.append(
+                f"status expected {expected.status}, got {actual.status}"
+            )
+
+        if failures:
+            checks.append(
+                ValidationCheck(
+                    name=f"vlan:{expected.vlan_id}",
+                    status=ValidationStatus.FAIL,
+                    message="; ".join(failures),
+                )
+            )
+        else:
+            checks.append(
+                ValidationCheck(
+                    name=f"vlan:{expected.vlan_id}",
+                    status=ValidationStatus.PASS,
+                    message=(
+                        f"VLAN {expected.vlan_id} "
+                        "matches expectation"
+                    ),
+                )
+            )
+
+    for expected in expectation.switchports:
+        actual = next(
+            (
+                switchport
+                for switchport in state.switchports
+                if switchport.interface == expected.interface
+            ),
+            None,
+        )
+
+        if actual is None:
+            checks.append(
+                ValidationCheck(
+                    name=f"switchport:{expected.interface}",
+                    status=ValidationStatus.FAIL,
+                    message=(
+                        f"Switchport {expected.interface} is missing"
+                    ),
+                )
+            )
+            continue
+
+        failures: list[str] = []
+
+        if (
+            expected.switchport_enabled is not None
+            and actual.switchport_enabled
+            != expected.switchport_enabled
+        ):
+            failures.append(
+                "switchport enabled expected "
+                f"{expected.switchport_enabled}, "
+                f"got {actual.switchport_enabled}"
+            )
+
+        if (
+            expected.administrative_mode is not None
+            and actual.administrative_mode
+            != expected.administrative_mode
+        ):
+            failures.append(
+                "administrative mode expected "
+                f"{expected.administrative_mode}, "
+                f"got {actual.administrative_mode}"
+            )
+
+        if (
+            expected.access_vlan is not None
+            and actual.access_vlan != expected.access_vlan
+        ):
+            failures.append(
+                f"access VLAN expected {expected.access_vlan}, "
+                f"got {actual.access_vlan}"
+            )
+
+        if (
+            expected.native_vlan is not None
+            and actual.native_vlan != expected.native_vlan
+        ):
+            failures.append(
+                f"native VLAN expected {expected.native_vlan}, "
+                f"got {actual.native_vlan}"
+            )
+
+        if expected.allowed_vlans is not None:
+            expected_vlans = set(expected.allowed_vlans)
+            actual_vlans = set(actual.allowed_vlans)
+
+            if actual_vlans != expected_vlans:
+                failures.append(
+                    "allowed VLANs expected "
+                    f"{sorted(expected_vlans)}, "
+                    f"got {sorted(actual_vlans)}"
+                )
+
+        if failures:
+            checks.append(
+                ValidationCheck(
+                    name=f"switchport:{expected.interface}",
+                    status=ValidationStatus.FAIL,
+                    message="; ".join(failures),
+                )
+            )
+        else:
+            checks.append(
+                ValidationCheck(
+                    name=f"switchport:{expected.interface}",
+                    status=ValidationStatus.PASS,
+                    message=(
+                        f"Switchport {expected.interface} "
+                        "matches expectation"
+                    ),
+                )
+            )
 
     return ValidationReport(
         hostname=state.hostname,

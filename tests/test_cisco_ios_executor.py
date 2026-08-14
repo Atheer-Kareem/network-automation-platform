@@ -19,7 +19,7 @@ from network_automation_platform.inventory import InventoryDevice
 def build_device() -> InventoryDevice:
     return InventoryDevice(
         hostname="br01-rtr01",
-        host="192.168.64.10",
+        host="192.168.100.10",
         port=22,
         driver="cisco_ios",
     )

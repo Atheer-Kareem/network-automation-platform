@@ -11,7 +11,7 @@ from network_automation_platform.inventory import InventoryDevice
 def test_build_cisco_ios_connection() -> None:
     device = InventoryDevice(
         hostname="br01-rtr01",
-        host="192.168.64.10",
+        host="192.168.100.10",
         port=22,
         driver="cisco_ios",
     )
@@ -29,7 +29,7 @@ def test_build_cisco_ios_connection() -> None:
         build_device_connection(device, settings)
 
     driver.assert_called_once_with(
-        host="192.168.64.10",
+        host="192.168.100.10",
         port=22,
         auth_username="netdevops",
         auth_password="test-password",

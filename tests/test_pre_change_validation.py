@@ -25,7 +25,7 @@ def test_pre_change_validation_passes() -> None:
         interfaces=[
             InterfaceState(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.64.10"),
+                ipv4=IPv4Address("192.168.100.10"),
                 status="up",
                 protocol="up",
                 admin_enabled=True,
@@ -40,7 +40,7 @@ def test_pre_change_validation_passes() -> None:
         routes=[
             RouteState(
                 protocol="C",
-                network=IPv4Network("192.168.64.0/24"),
+                network=IPv4Network("192.168.100.0/24"),
                 outgoing_interface="FastEthernet0/0",
             )
         ],
@@ -51,7 +51,7 @@ def test_pre_change_validation_passes() -> None:
         required_interfaces=[
             InterfaceExpectation(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.64.10"),
+                ipv4=IPv4Address("192.168.100.10"),
                 status="up",
                 protocol="up",
             ),
@@ -61,7 +61,7 @@ def test_pre_change_validation_passes() -> None:
         ],
         required_routes=[
             RouteExpectation(
-                network=IPv4Network("192.168.64.0/24"),
+                network=IPv4Network("192.168.100.0/24"),
                 protocol="C",
                 outgoing_interface="FastEthernet0/0",
             )
@@ -113,7 +113,7 @@ def test_pre_change_validation_fails_missing_required_route() -> None:
         expected_hostname="br01-rtr01",
         required_routes=[
             RouteExpectation(
-                network=IPv4Network("192.168.64.0/24"),
+                network=IPv4Network("192.168.100.0/24"),
                 protocol="C",
             )
         ],
@@ -124,7 +124,7 @@ def test_pre_change_validation_fails_missing_required_route() -> None:
     assert report.passed is False
     assert report.checks[0].status == ValidationStatus.FAIL
     assert report.checks[0].message == (
-        "Route 192.168.64.0/24 is missing"
+        "Route 192.168.100.0/24 is missing"
     )
 
 

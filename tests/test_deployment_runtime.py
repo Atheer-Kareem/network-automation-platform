@@ -34,7 +34,7 @@ from network_automation_platform.validation import (
 def build_device() -> InventoryDevice:
     return InventoryDevice(
         hostname="br01-rtr01",
-        host="192.168.64.10",
+        host="192.168.100.10",
         port=22,
         driver="cisco_ios",
     )
@@ -55,7 +55,7 @@ def build_current_state() -> DeviceState:
         interfaces=[
             InterfaceState(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.64.10"),
+                ipv4=IPv4Address("192.168.100.10"),
                 status="up",
                 protocol="up",
                 admin_enabled=True,
@@ -64,7 +64,7 @@ def build_current_state() -> DeviceState:
         routes=[
             RouteState(
                 protocol="C",
-                network=IPv4Network("192.168.64.0/24"),
+                network=IPv4Network("192.168.100.0/24"),
                 outgoing_interface="FastEthernet0/0",
             )
         ],
@@ -91,14 +91,14 @@ def build_pre_change_expectation() -> PreChangeExpectation:
         required_interfaces=[
             InterfaceExpectation(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.64.10"),
+                ipv4=IPv4Address("192.168.100.10"),
                 status="up",
                 protocol="up",
             )
         ],
         required_routes=[
             RouteExpectation(
-                network=IPv4Network("192.168.64.0/24"),
+                network=IPv4Network("192.168.100.0/24"),
                 protocol="C",
                 outgoing_interface="FastEthernet0/0",
             )

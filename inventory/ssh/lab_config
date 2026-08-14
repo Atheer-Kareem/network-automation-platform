@@ -1,5 +1,20 @@
-Host 192.168.64.10
-    Port 22
-    KexAlgorithms +diffie-hellman-group14-sha1
-    HostKeyAlgorithms +ssh-rsa
-    Ciphers +aes256-cbc
+Host core01 192.168.100.10
+HostName 192.168.100.10
+User netdevops
+Port 22
+KexAlgorithms +diffie-hellman-group14-sha1
+HostKeyAlgorithms +ssh-rsa
+
+Host br01-rtr01 192.168.100.11
+HostName 192.168.100.11
+User netdevops
+Port 22
+KexAlgorithms +diffie-hellman-group14-sha1
+HostKeyAlgorithms +ssh-rsa
+
+Host br01-sw01 192.168.100.12
+HostName 192.168.100.12
+User netdevops
+Port 22
+KexAlgorithms +diffie-hellman-group14-sha1
+HostKeyAlgorithms +ssh-rsa

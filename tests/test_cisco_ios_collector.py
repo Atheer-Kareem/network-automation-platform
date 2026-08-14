@@ -10,8 +10,11 @@ from network_automation_platform.collectors.cisco_ios import (
     StateParseError,
     collect_device_state,
     collect_interface_state,
+    parse_interfaces_switchport,
     parse_ip_interface_brief,
+    parse_ip_ospf_neighbor,
     parse_ip_route,
+    parse_vlan_brief,
 )
 from network_automation_platform.connection_settings import ConnectionSettings
 from network_automation_platform.inventory import InventoryDevice
@@ -21,7 +24,7 @@ def test_parse_ip_interface_brief() -> None:
     parsed_output = [
         {
             "interface": "FastEthernet0/0",
-            "ip_address": "192.168.64.10",
+            "ip_address": "192.168.100.10",
             "status": "up",
             "proto": "up",
         },
@@ -38,7 +41,7 @@ def test_parse_ip_interface_brief() -> None:
     assert len(interfaces) == 2
 
     assert interfaces[0].name == "FastEthernet0/0"
-    assert interfaces[0].ipv4 == IPv4Address("192.168.64.10")
+    assert interfaces[0].ipv4 == IPv4Address("192.168.100.10")
     assert interfaces[0].status == "up"
     assert interfaces[0].protocol == "up"
 
@@ -62,7 +65,7 @@ def test_parse_ip_route() -> None:
             "vrf": "",
             "protocol": "C",
             "type": "",
-            "network": "192.168.64.0",
+            "network": "192.168.100.0",
             "prefix_length": "24",
             "distance": "",
             "metric": "",
@@ -76,7 +79,7 @@ def test_parse_ip_route() -> None:
             "vrf": "",
             "protocol": "L",
             "type": "",
-            "network": "192.168.64.10",
+            "network": "192.168.100.10",
             "prefix_length": "32",
             "distance": "",
             "metric": "",
@@ -93,12 +96,12 @@ def test_parse_ip_route() -> None:
     assert len(routes) == 2
 
     assert routes[0].protocol == "C"
-    assert routes[0].network == IPv4Network("192.168.64.0/24")
+    assert routes[0].network == IPv4Network("192.168.100.0/24")
     assert routes[0].next_hop is None
     assert routes[0].outgoing_interface == "FastEthernet0/0"
 
     assert routes[1].protocol == "L"
-    assert routes[1].network == IPv4Network("192.168.64.10/32")
+    assert routes[1].network == IPv4Network("192.168.100.10/32")
 
 def test_parse_ip_route_rejects_empty_output() -> None:
     with pytest.raises(
@@ -110,7 +113,7 @@ def test_parse_ip_route_rejects_empty_output() -> None:
 def test_collect_interface_state() -> None:
     device = InventoryDevice(
         hostname="br01-rtr01",
-        host="192.168.64.10",
+        host="192.168.100.10",
         port=22,
         driver="cisco_ios",
     )
@@ -127,7 +130,7 @@ def test_collect_interface_state() -> None:
     response.textfsm_parse_output.return_value = [
         {
             "interface": "FastEthernet0/0",
-            "ip_address": "192.168.64.10",
+            "ip_address": "192.168.100.10",
             "status": "up",
             "proto": "up",
         }
@@ -155,7 +158,7 @@ def test_collect_interface_state() -> None:
 def test_collect_interface_state_rejects_failed_command() -> None:
     device = InventoryDevice(
         hostname="br01-rtr01",
-        host="192.168.64.10",
+        host="192.168.100.10",
         port=22,
         driver="cisco_ios",
     )
@@ -186,9 +189,10 @@ def test_collect_interface_state_rejects_failed_command() -> None:
 def test_collect_device_state() -> None:
     device = InventoryDevice(
         hostname="br01-rtr01",
-        host="192.168.64.10",
+        host="192.168.100.10",
         port=22,
         driver="cisco_ios",
+        state_features={"routes", "ospf"},
     )
 
     settings = ConnectionSettings(
@@ -203,7 +207,7 @@ def test_collect_device_state() -> None:
     interface_response.textfsm_parse_output.return_value = [
         {
             "interface": "FastEthernet0/0",
-            "ip_address": "192.168.64.10",
+            "ip_address": "192.168.100.10",
             "status": "up",
             "proto": "up",
         }
@@ -216,7 +220,7 @@ def test_collect_device_state() -> None:
             "vrf": "",
             "protocol": "C",
             "type": "",
-            "network": "192.168.64.0",
+            "network": "192.168.100.0",
             "prefix_length": "24",
             "distance": "",
             "metric": "",
@@ -228,11 +232,25 @@ def test_collect_device_state() -> None:
         }
     ]
 
+    ospf_response = MagicMock()
+    ospf_response.failed = False
+    ospf_response.textfsm_parse_output.return_value = [
+        {
+            "neighbor_id": "10.101.255.2",
+            "priority": "1",
+            "state": "FULL/DR",
+            "dead_time": "00:00:35",
+            "ip_address": "10.101.255.2",
+            "interface": "FastEthernet1/0",
+        }
+    ]
+
     connection = MagicMock()
     connection.__enter__.return_value = connection
     connection.send_command.side_effect = [
         interface_response,
         route_response,
+        ospf_response,
     ]
 
     with patch(
@@ -249,4 +267,97 @@ def test_collect_device_state() -> None:
     assert len(state.routes) == 1
     assert state.routes[0].protocol == "C"
 
-    assert connection.send_command.call_count == 2
+    assert len(state.ospf_neighbors) == 1
+    neighbor = state.ospf_neighbors[0]
+    assert str(neighbor.neighbor_id) == "10.101.255.2"
+    assert str(neighbor.address) == "10.101.255.2"
+    assert neighbor.interface == "FastEthernet1/0"
+    assert neighbor.state == "FULL/DR"
+
+    assert connection.send_command.call_count == 3
+
+def test_parse_ip_ospf_neighbor() -> None:
+    parsed_output = [
+        {
+            "neighbor_id": "10.101.255.2",
+            "priority": "1",
+            "state": "FULL/DR",
+            "dead_time": "00:00:35",
+            "ip_address": "10.101.255.2",
+            "interface": "FastEthernet1/0",
+        }
+    ]
+
+    neighbors = parse_ip_ospf_neighbor(parsed_output)
+
+    assert len(neighbors) == 1
+
+    neighbor = neighbors[0]
+
+    assert str(neighbor.neighbor_id) == "10.101.255.2"
+    assert str(neighbor.address) == "10.101.255.2"
+    assert neighbor.interface == "FastEthernet1/0"
+    assert neighbor.state == "FULL/DR"
+
+def test_parse_ip_ospf_neighbor_returns_empty_list_for_no_neighbors() -> None:
+    assert parse_ip_ospf_neighbor([]) == []
+
+
+def test_parse_vlan_brief() -> None:
+    parsed_output = [
+        {"vlan_id": "10", "vlan_name": "DATA", "status": "active"},
+        {"vlan_id": "20", "vlan_name": "VOICE", "status": "suspend"},
+    ]
+
+    vlans = parse_vlan_brief(parsed_output)
+
+    assert len(vlans) == 2
+    assert vlans[0].vlan_id == 10
+    assert vlans[0].name == "DATA"
+    assert vlans[0].status == "active"
+    assert vlans[1].vlan_id == 20
+    assert vlans[1].name == "VOICE"
+    assert vlans[1].status == "suspend"
+
+
+def test_parse_interfaces_switchport() -> None:
+    parsed_output = [
+        {
+            "interface": "Gi1/0/1",
+            "switchport": "Enabled",
+            "admin_mode": "static access",
+            "mode": "trunk",
+            "access_vlan": "10",
+            "native_vlan": "1",
+            "trunking_vlans": ["10,20,30"],
+        },
+        {
+            "interface": "Fa0/24",
+            "switchport": "Enabled",
+            "admin_mode": "trunk",
+            "mode": "trunk",
+            "access_vlan": "",
+            "native_vlan": "99",
+            "trunking_vlans": ["ALL"],
+        },
+    ]
+
+    switchports = parse_interfaces_switchport(parsed_output)
+
+    assert len(switchports) == 2
+
+    assert switchports[0].interface == "GigabitEthernet1/0/1"
+    assert switchports[0].switchport_enabled is True
+    assert switchports[0].administrative_mode == "access"
+    assert switchports[0].operational_mode == "trunk"
+    assert switchports[0].access_vlan == 10
+    assert switchports[0].native_vlan == 1
+    assert switchports[0].allowed_vlans == [10, 20, 30]
+
+    assert switchports[1].interface == "FastEthernet0/24"
+    assert switchports[1].switchport_enabled is True
+    assert switchports[1].administrative_mode == "trunk"
+    assert switchports[1].operational_mode == "trunk"
+    assert switchports[1].access_vlan is None
+    assert switchports[1].native_vlan == 99
+    assert switchports[1].allowed_vlans == []
