@@ -1,26 +1,23 @@
 from network_automation_platform.desired_state import DeviceDesiredState
 from network_automation_platform.platform_profiles import (
     ROUTER_PLATFORM_PROFILES,
+    SWITCH_PLATFORM_PROFILES,
 )
 from network_automation_platform.validation import (
     InterfaceExpectation,
     RouteExpectation,
+    SwitchportExpectation,
     ValidationExpectation,
+    VlanExpectation,
 )
 
 
 class ValidationExpectationError(ValueError):
     pass
 
-
-def build_desired_state_expectation(
+def _build_router_expectation(
     device: DeviceDesiredState,
 ) -> ValidationExpectation:
-    if device.role != "branch_router":
-        raise ValidationExpectationError(
-            f"Unsupported device role for validation: {device.role}"
-        )
-
     try:
         profile = ROUTER_PLATFORM_PROFILES[device.platform]
     except KeyError as exc:
@@ -75,4 +72,102 @@ def build_desired_state_expectation(
     return ValidationExpectation(
         interfaces=interfaces,
         routes=routes,
+    )
+
+def _build_switch_expectation(
+    device: DeviceDesiredState,
+) -> ValidationExpectation:
+    try:
+        profile = SWITCH_PLATFORM_PROFILES[device.platform]
+    except KeyError as exc:
+        raise ValidationExpectationError(
+            f"Unsupported switch platform: {device.platform}"
+        ) from exc
+
+    interfaces: list[InterfaceExpectation] = []
+    vlans: list[VlanExpectation] = []
+    switchports: list[SwitchportExpectation] = []
+
+    for vlan in device.vlans:
+        vlans.append(
+            VlanExpectation(
+                vlan_id=vlan.vlan_id,
+                name=vlan.name,
+                status="active",
+            )
+        )
+
+    for interface in device.interfaces:
+        if interface.name == "management_svi":
+            if interface.vlan_id is None:
+                raise ValidationExpectationError(
+                    "Management SVI requires a VLAN ID"
+                )
+
+            interfaces.append(
+                InterfaceExpectation(
+                    name=f"Vlan{interface.vlan_id}",
+                    ipv4=(
+                        interface.ipv4.ip
+                        if interface.ipv4 is not None
+                        else None
+                    ),
+                    admin_enabled=interface.enabled,
+                )
+            )
+            continue
+
+        try:
+            physical_name = profile.interface_map[interface.name]
+        except KeyError as exc:
+            raise ValidationExpectationError(
+                f"Missing interface mapping for "
+                f"{interface.name} on platform "
+                f"{device.platform}"
+            ) from exc
+
+        interfaces.append(
+            InterfaceExpectation(
+                name=physical_name,
+                admin_enabled=interface.enabled,
+            )
+        )
+
+        if interface.mode == "trunk":
+            switchports.append(
+                SwitchportExpectation(
+                    interface=physical_name,
+                    switchport_enabled=True,
+                    administrative_mode="trunk",
+                    allowed_vlans=interface.allowed_vlans,
+                )
+            )
+
+        elif interface.mode == "access":
+            switchports.append(
+                SwitchportExpectation(
+                    interface=physical_name,
+                    switchport_enabled=True,
+                    administrative_mode="access",
+                    access_vlan=interface.access_vlan,
+                )
+            )
+
+    return ValidationExpectation(
+        interfaces=interfaces,
+        vlans=vlans,
+        switchports=switchports,
+    )
+
+def build_desired_state_expectation(
+    device: DeviceDesiredState,
+) -> ValidationExpectation:
+    if device.role == "branch_router":
+        return _build_router_expectation(device)
+
+    if device.role == "branch_switch":
+        return _build_switch_expectation(device)
+
+    raise ValidationExpectationError(
+        f"Unsupported device role for validation: {device.role}"
     )

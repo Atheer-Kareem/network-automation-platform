@@ -16,8 +16,14 @@ class SwitchPlatformProfile:
 ROUTER_PLATFORM_PROFILES = {
     "cisco_ios_c7200": RouterPlatformProfile(
         interface_map={
-            "wan": "FastEthernet0/0",
-            "lan": "FastEthernet1/0",
+            "wan": "FastEthernet1/0",
+            "lan": "FastEthernet1/1",
+        }
+    ),
+    "cisco_iosv": RouterPlatformProfile(
+        interface_map={
+            "wan": "GigabitEthernet0/1",
+            "lan": "GigabitEthernet0/2",
         }
     ),
 }
@@ -26,8 +32,9 @@ ROUTER_PLATFORM_PROFILES = {
 SWITCH_PLATFORM_PROFILES = {
     "cisco_iosv_l2": SwitchPlatformProfile(
         interface_map={
-            "uplink": "GigabitEthernet0/0",
-            "users_access": "GigabitEthernet0/1",
+            "uplink": "GigabitEthernet0/1",
+            "users_access": "GigabitEthernet0/2",
+            "voice_access": "GigabitEthernet0/3",
         },
         trunk_encapsulation="dot1q",
         disable_ip_routing=True,

@@ -1,5 +1,25 @@
 devices:
-  - hostname: br01-rtr01
-    host: 192.168.64.10
+  - hostname: core01
+    host: 192.168.100.10
     port: 22
     driver: cisco_ios
+    state_features:
+      - routes
+      - ospf
+
+  - hostname: br01-rtr01
+    host: 192.168.100.11
+    port: 22
+    driver: cisco_ios
+    state_features:
+      - routes
+      - ospf
+
+  - hostname: br01-sw01
+    host: 192.168.100.12
+    port: 22
+    driver: cisco_ios
+    state_features:
+      - routes
+      - vlans
+      - switchports

@@ -70,7 +70,7 @@ External device interaction should remain behind platform-owned interfaces so or
 
 ### Environment independence
 
-The automation platform should not depend directly on GNS3, EVE-NG, CML, or physical hardware.
+The automation platform should not depend directly on any specific lab or execution environment, including CML, EVE-NG, development sandboxes, or physical hardware.
 
 These environments provide network targets, not application architecture.
 
@@ -113,6 +113,31 @@ The initial V1 implementation provides Cisco IOS adapters using the existing dev
 
 This keeps deployment orchestration and policy independent from Cisco-specific behaviour and the underlying Scrapli implementation.
 
+## Capability-Aware State Collection
+
+Device state collection is capability-aware.
+
+Inventory declares which state features are supported and required for each device. The collector always gathers common interface state and only executes additional commands for explicitly enabled capabilities.
+
+Current state features include:
+
+- `routes`
+- `ospf`
+- `vlans`
+- `switchports`
+
+This prevents the platform from issuing unsupported or irrelevant commands to devices that do not provide those capabilities.
+
+Collected state currently includes:
+
+- Interface state
+- Route state
+- OSPF neighbor state
+- VLAN state
+- Switchport state
+
+Capability selection is an inventory concern rather than a dependency on a specific lab environment.
+
 ## Device Identity Safety
 
 Before configuration execution, the deployment workflow verifies that the deployment target, current device state, and desired state refer to the same device.
@@ -132,6 +157,28 @@ It does not imply that the interface must be operationally `up`.
 Collected interface state therefore includes an explicit `admin_enabled` property that can be validated independently from interface and protocol operational status.
 
 This allows the platform to validate configuration intent without incorrectly treating lack of physical connectivity as a deployment failure.
+
+## Representative Drift Remediation
+
+The V1 deployment workflow has been validated against a live representative branch switch.
+
+The platform detected a missing management SVI while the remaining physical interface, VLAN, and switchport expectations remained compliant.
+
+A targeted candidate configuration was then applied through the controlled deployment workflow.
+
+The workflow:
+
+1. Collected current switch state
+2. Detected the missing management SVI
+3. Verified required pre-change safety conditions
+4. Applied the targeted configuration change
+5. Collected fresh post-change state
+6. Re-ran full desired-state validation
+7. Reported the deployment as successful only after validation passed
+
+The dedicated out-of-band management interface was outside the candidate configuration and remained unchanged throughout the deployment.
+
+This demonstrates that V1 can detect and remediate a specific configuration drift condition without requiring full-device configuration replacement.
 
 ## Configuration Persistence
 
@@ -174,6 +221,7 @@ Controlled deployment currently has the following limitations:
 - No automatic persistence of running configuration to startup configuration
 - Candidate configuration is executed as CLI command sequences
 - Multi-device transaction semantics are not implemented
+- OSPF neighbor state is collected but OSPF adjacency expectations are not yet modelled in desired-state validation
 
 These constraints are intentional for V1 and keep the execution model small enough to validate safely before expanding platform scope.
 

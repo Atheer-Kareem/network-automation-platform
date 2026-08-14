@@ -4,12 +4,20 @@ from typing import Literal
 import yaml
 from pydantic import BaseModel, Field
 
+StateFeature = Literal[
+    "routes",
+    "ospf",
+    "vlans",
+    "switchports",
+]
+
 
 class InventoryDevice(BaseModel):
     hostname: str
     host: str
     port: int = Field(default=22, ge=1, le=65535)
     driver: Literal["cisco_ios"]
+    state_features: set[StateFeature] = Field(default_factory=set)
 
 
 class DeviceInventory(BaseModel):

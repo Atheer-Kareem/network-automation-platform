@@ -6,12 +6,16 @@ from network_automation_platform.device_state import (
     DeviceState,
     InterfaceState,
     RouteState,
+    SwitchportState,
+    VlanState,
 )
 from network_automation_platform.validation import (
     InterfaceExpectation,
     RouteExpectation,
+    SwitchportExpectation,
     ValidationExpectation,
     ValidationStatus,
+    VlanExpectation,
     validate_device_state,
 )
 
@@ -23,7 +27,7 @@ def test_validate_device_state_fails_missing_interface() -> None:
         routes=[
             RouteState(
                 protocol="C",
-                network=IPv4Network("192.168.64.0/24"),
+                network=IPv4Network("192.168.100.0/24"),
                 outgoing_interface="FastEthernet0/0",
             )
         ],
@@ -33,14 +37,14 @@ def test_validate_device_state_fails_missing_interface() -> None:
         interfaces=[
             InterfaceExpectation(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.64.10"),
+                ipv4=IPv4Address("192.168.100.10"),
                 status="up",
                 protocol="up",
             )
         ],
         routes=[
             RouteExpectation(
-                network=IPv4Network("192.168.64.0/24"),
+                network=IPv4Network("192.168.100.0/24"),
                 protocol="C",
                 outgoing_interface="FastEthernet0/0",
             )
@@ -54,7 +58,7 @@ def test_validate_device_state_fails_missing_interface() -> None:
     assert report.checks[0].status == ValidationStatus.FAIL
     assert report.checks[0].message == "Interface FastEthernet0/0 is missing"
     assert report.checks[1].status == ValidationStatus.PASS
-    assert report.checks[1].message == "Route 192.168.64.0/24 matches expectation"
+    assert report.checks[1].message == "Route 192.168.100.0/24 matches expectation"
 
 
 def test_validate_device_state_fails_wrong_interface_ip() -> None:
@@ -63,7 +67,7 @@ def test_validate_device_state_fails_wrong_interface_ip() -> None:
         interfaces=[
             InterfaceState(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.64.11"),
+                ipv4=IPv4Address("192.168.100.11"),
                 status="up",
                 protocol="up",
                 admin_enabled=True,
@@ -72,7 +76,7 @@ def test_validate_device_state_fails_wrong_interface_ip() -> None:
         routes=[
             RouteState(
                 protocol="C",
-                network=IPv4Network("192.168.64.0/24"),
+                network=IPv4Network("192.168.100.0/24"),
                 outgoing_interface="FastEthernet0/0",
             )
         ],
@@ -82,14 +86,14 @@ def test_validate_device_state_fails_wrong_interface_ip() -> None:
         interfaces=[
             InterfaceExpectation(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.64.10"),
+                ipv4=IPv4Address("192.168.100.10"),
                 status="up",
                 protocol="up",
             )
         ],
         routes=[
             RouteExpectation(
-                network=IPv4Network("192.168.64.0/24"),
+                network=IPv4Network("192.168.100.0/24"),
                 protocol="C",
                 outgoing_interface="FastEthernet0/0",
             )
@@ -101,9 +105,9 @@ def test_validate_device_state_fails_wrong_interface_ip() -> None:
     assert report.passed is False
     assert len(report.checks) == 2
     assert report.checks[0].status == ValidationStatus.FAIL
-    assert "IPv4 expected 192.168.64.10, got 192.168.64.11" in report.checks[0].message
+    assert "IPv4 expected 192.168.100.10, got 192.168.100.11" in report.checks[0].message
     assert report.checks[1].status == ValidationStatus.PASS
-    assert report.checks[1].message == "Route 192.168.64.0/24 matches expectation"
+    assert report.checks[1].message == "Route 192.168.100.0/24 matches expectation"
 
 
 def test_validate_device_state_fails_missing_route() -> None:
@@ -112,7 +116,7 @@ def test_validate_device_state_fails_missing_route() -> None:
         interfaces=[
             InterfaceState(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.64.10"),
+                ipv4=IPv4Address("192.168.100.10"),
                 status="up",
                 protocol="up",
                 admin_enabled=True,
@@ -125,14 +129,14 @@ def test_validate_device_state_fails_missing_route() -> None:
         interfaces=[
             InterfaceExpectation(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.64.10"),
+                ipv4=IPv4Address("192.168.100.10"),
                 status="up",
                 protocol="up",
             )
         ],
         routes=[
             RouteExpectation(
-                network=IPv4Network("192.168.64.0/24"),
+                network=IPv4Network("192.168.100.0/24"),
                 protocol="C",
                 outgoing_interface="FastEthernet0/0",
             )
@@ -146,7 +150,7 @@ def test_validate_device_state_fails_missing_route() -> None:
     assert report.checks[0].status == ValidationStatus.PASS
     assert report.checks[0].message == "Interface FastEthernet0/0 matches expectation"
     assert report.checks[1].status == ValidationStatus.FAIL
-    assert report.checks[1].message == "Route 192.168.64.0/24 is missing"
+    assert report.checks[1].message == "Route 192.168.100.0/24 is missing"
 
 def test_validate_device_state_fails_wrong_route_protocol() -> None:
     state = DeviceState(
@@ -154,7 +158,7 @@ def test_validate_device_state_fails_wrong_route_protocol() -> None:
         interfaces=[
             InterfaceState(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.64.10"),
+                ipv4=IPv4Address("192.168.100.10"),
                 status="up",
                 protocol="up",
                 admin_enabled=True,
@@ -163,7 +167,7 @@ def test_validate_device_state_fails_wrong_route_protocol() -> None:
         routes=[
             RouteState(
                 protocol="O",
-                network=IPv4Network("192.168.64.0/24"),
+                network=IPv4Network("192.168.100.0/24"),
                 outgoing_interface="FastEthernet0/0",
             )
         ],
@@ -173,14 +177,14 @@ def test_validate_device_state_fails_wrong_route_protocol() -> None:
         interfaces=[
             InterfaceExpectation(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.64.10"),
+                ipv4=IPv4Address("192.168.100.10"),
                 status="up",
                 protocol="up",
             )
         ],
         routes=[
             RouteExpectation(
-                network=IPv4Network("192.168.64.0/24"),
+                network=IPv4Network("192.168.100.0/24"),
                 protocol="C",
                 outgoing_interface="FastEthernet0/0",
             )
@@ -202,7 +206,7 @@ def test_validate_device_state_passes() -> None:
         interfaces=[
             InterfaceState(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.64.10"),
+                ipv4=IPv4Address("192.168.100.10"),
                 status="up",
                 protocol="up",
                 admin_enabled=True,
@@ -211,7 +215,7 @@ def test_validate_device_state_passes() -> None:
         routes=[
             RouteState(
                 protocol="C",
-                network=IPv4Network("192.168.64.0/24"),
+                network=IPv4Network("192.168.100.0/24"),
                 outgoing_interface="FastEthernet0/0",
             )
         ],
@@ -221,14 +225,14 @@ def test_validate_device_state_passes() -> None:
         interfaces=[
             InterfaceExpectation(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.64.10"),
+                ipv4=IPv4Address("192.168.100.10"),
                 status="up",
                 protocol="up",
             )
         ],
         routes=[
             RouteExpectation(
-                network=IPv4Network("192.168.64.0/24"),
+                network=IPv4Network("192.168.100.0/24"),
                 protocol="C",
                 outgoing_interface="FastEthernet0/0",
             )
@@ -282,4 +286,230 @@ def test_validate_device_state_passes_when_one_matching_route_satisfies_expectat
     report = validate_device_state(state, expectation)
 
     assert report.passed is True
+    assert report.checks[0].status == ValidationStatus.PASS
+
+def test_validate_device_state_passes_vlan() -> None:
+    state = DeviceState(
+        hostname="br01-sw01",
+        interfaces=[],
+        routes=[],
+        vlans=[
+            VlanState(
+                vlan_id=10,
+                name="USERS",
+                status="active",
+            )
+        ],
+    )
+
+    expectation = ValidationExpectation(
+        vlans=[
+            VlanExpectation(
+                vlan_id=10,
+                name="USERS",
+                status="active",
+            )
+        ]
+    )
+
+    report = validate_device_state(state, expectation)
+
+    assert report.passed is True
+    assert len(report.checks) == 1
+    assert report.checks[0].name == "vlan:10"
+    assert report.checks[0].status == ValidationStatus.PASS
+
+
+def test_validate_device_state_fails_vlan_mismatch() -> None:
+    state = DeviceState(
+        hostname="br01-sw01",
+        interfaces=[],
+        routes=[],
+        vlans=[
+            VlanState(
+                vlan_id=10,
+                name="WRONG",
+                status="active",
+            )
+        ],
+    )
+
+    expectation = ValidationExpectation(
+        vlans=[
+            VlanExpectation(
+                vlan_id=10,
+                name="USERS",
+                status="active",
+            )
+        ]
+    )
+
+    report = validate_device_state(state, expectation)
+
+    assert report.passed is False
+    assert len(report.checks) == 1
+    assert report.checks[0].name == "vlan:10"
+    assert report.checks[0].status == ValidationStatus.FAIL
+    assert "name expected USERS, got WRONG" in report.checks[0].message
+
+
+def test_validate_device_state_fails_missing_vlan() -> None:
+    state = DeviceState(
+        hostname="br01-sw01",
+        interfaces=[],
+        routes=[],
+    )
+
+    expectation = ValidationExpectation(
+        vlans=[
+            VlanExpectation(
+                vlan_id=99,
+                name="MANAGEMENT",
+                status="active",
+            )
+        ]
+    )
+
+    report = validate_device_state(state, expectation)
+
+    assert report.passed is False
+    assert len(report.checks) == 1
+    assert report.checks[0].name == "vlan:99"
+    assert report.checks[0].status == ValidationStatus.FAIL
+    assert report.checks[0].message == "VLAN 99 is missing"
+
+
+def test_validate_device_state_passes_switchport() -> None:
+    state = DeviceState(
+        hostname="br01-sw01",
+        interfaces=[],
+        routes=[],
+        switchports=[
+            SwitchportState(
+                interface="GigabitEthernet0/2",
+                switchport_enabled=True,
+                administrative_mode="access",
+                operational_mode="access",
+                access_vlan=10,
+            )
+        ],
+    )
+
+    expectation = ValidationExpectation(
+        switchports=[
+            SwitchportExpectation(
+                interface="GigabitEthernet0/2",
+                switchport_enabled=True,
+                administrative_mode="access",
+                access_vlan=10,
+            )
+        ]
+    )
+
+    report = validate_device_state(state, expectation)
+
+    assert report.passed is True
+    assert len(report.checks) == 1
+    assert report.checks[0].name == "switchport:GigabitEthernet0/2"
+    assert report.checks[0].status == ValidationStatus.PASS
+
+
+def test_validate_device_state_fails_switchport_mismatch() -> None:
+    state = DeviceState(
+        hostname="br01-sw01",
+        interfaces=[],
+        routes=[],
+        switchports=[
+            SwitchportState(
+                interface="GigabitEthernet0/2",
+                switchport_enabled=True,
+                administrative_mode="access",
+                operational_mode="access",
+                access_vlan=20,
+            )
+        ],
+    )
+
+    expectation = ValidationExpectation(
+        switchports=[
+            SwitchportExpectation(
+                interface="GigabitEthernet0/2",
+                switchport_enabled=True,
+                administrative_mode="access",
+                access_vlan=10,
+            )
+        ]
+    )
+
+    report = validate_device_state(state, expectation)
+
+    assert report.passed is False
+    assert len(report.checks) == 1
+    assert report.checks[0].name == "switchport:GigabitEthernet0/2"
+    assert report.checks[0].status == ValidationStatus.FAIL
+    assert "access VLAN expected 10, got 20" in report.checks[0].message
+
+
+def test_validate_device_state_fails_missing_switchport() -> None:
+    state = DeviceState(
+        hostname="br01-sw01",
+        interfaces=[],
+        routes=[],
+    )
+
+    expectation = ValidationExpectation(
+        switchports=[
+            SwitchportExpectation(
+                interface="GigabitEthernet0/1",
+                switchport_enabled=True,
+                administrative_mode="trunk",
+                allowed_vlans=[10, 20, 99],
+            )
+        ]
+    )
+
+    report = validate_device_state(state, expectation)
+
+    assert report.passed is False
+    assert len(report.checks) == 1
+    assert report.checks[0].name == "switchport:GigabitEthernet0/1"
+    assert report.checks[0].status == ValidationStatus.FAIL
+    assert (
+        report.checks[0].message
+        == "Switchport GigabitEthernet0/1 is missing"
+    )
+
+
+def test_validate_device_state_compares_allowed_vlans_without_order() -> None:
+    state = DeviceState(
+        hostname="br01-sw01",
+        interfaces=[],
+        routes=[],
+        switchports=[
+            SwitchportState(
+                interface="GigabitEthernet0/1",
+                switchport_enabled=True,
+                administrative_mode="trunk",
+                operational_mode="trunk",
+                native_vlan=1,
+                allowed_vlans=[99, 10, 20],
+            )
+        ],
+    )
+
+    expectation = ValidationExpectation(
+        switchports=[
+            SwitchportExpectation(
+                interface="GigabitEthernet0/1",
+                switchport_enabled=True,
+                administrative_mode="trunk",
+                allowed_vlans=[10, 20, 99],
+            )
+        ]
+    )
+
+    report = validate_device_state(state, expectation)
+
+    assert report.passed is True
+    assert len(report.checks) == 1
     assert report.checks[0].status == ValidationStatus.PASS

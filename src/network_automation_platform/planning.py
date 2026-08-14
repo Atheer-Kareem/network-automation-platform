@@ -99,6 +99,12 @@ def build_branch_desired_state(intent: BranchIntent) -> BranchDesiredState:
                 access_vlan=intent.networks.users.vlan_id,
             ),
             InterfaceDesiredState(
+                name="voice_access",
+                description="Voice access port",
+                mode="access",
+                access_vlan=intent.networks.voice.vlan_id,
+            ),
+            InterfaceDesiredState(
                 name="management_svi",
                 description="Switch management SVI",
                 vlan_id=intent.networks.management.vlan_id,

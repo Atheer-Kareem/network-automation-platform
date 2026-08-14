@@ -37,8 +37,8 @@ def build_current_state() -> DeviceState:
         hostname="br01-rtr01",
         interfaces=[
             InterfaceState(
-                name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.64.10"),
+                name="FastEthernet1/0",
+                ipv4=IPv4Address("192.168.100.10"),
                 status="up",
                 protocol="up",
                 admin_enabled=True,
@@ -47,8 +47,8 @@ def build_current_state() -> DeviceState:
         routes=[
             RouteState(
                 protocol="C",
-                network=IPv4Network("192.168.64.0/24"),
-                outgoing_interface="FastEthernet0/0",
+                network=IPv4Network("192.168.100.0/24"),
+                outgoing_interface="FastEthernet1/0",
             )
         ],
     )
@@ -59,17 +59,17 @@ def build_passing_pre_change_expectation() -> PreChangeExpectation:
         expected_hostname="br01-rtr01",
         required_interfaces=[
             InterfaceExpectation(
-                name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.64.10"),
+                name="FastEthernet1/0",
+                ipv4=IPv4Address("192.168.100.10"),
                 status="up",
                 protocol="up",
             )
         ],
         required_routes=[
             RouteExpectation(
-                network=IPv4Network("192.168.64.0/24"),
+                network=IPv4Network("192.168.100.0/24"),
                 protocol="C",
-                outgoing_interface="FastEthernet0/0",
+                outgoing_interface="FastEthernet1/0",
             )
         ],
     )
@@ -94,7 +94,7 @@ def build_post_change_state() -> DeviceState:
         hostname="br01-rtr01",
         interfaces=[
             InterfaceState(
-                name="FastEthernet0/0",
+                name="FastEthernet1/0",
                 ipv4=IPv4Address("10.101.255.1"),
                 status="up",
                 protocol="up",
@@ -105,7 +105,7 @@ def build_post_change_state() -> DeviceState:
             RouteState(
                 protocol="C",
                 network=IPv4Network("10.101.255.0/30"),
-                outgoing_interface="FastEthernet0/0",
+                outgoing_interface="FastEthernet1/0",
             )
         ],
     )
@@ -119,7 +119,7 @@ def test_failed_pre_change_validation_blocks_deployment() -> None:
         expected_hostname="br01-rtr01",
         required_interfaces=[
             InterfaceExpectation(
-                name="FastEthernet1/0",
+                name="FastEthernet1/1",
                 status="up",
             )
         ],
@@ -155,7 +155,7 @@ def test_deployment_execution_failure_returns_failed_result() -> None:
 
     result = deploy_device(
         hostname="br01-rtr01",
-        candidate_config="interface FastEthernet0/0",
+        candidate_config="interface FastEthernet1/0",
         desired_state=build_desired_state(),
         current_state=build_current_state(),
         pre_change_expectation=build_passing_pre_change_expectation(),
@@ -172,7 +172,7 @@ def test_deployment_execution_failure_returns_failed_result() -> None:
 
     executor.apply_config.assert_called_once_with(
         "br01-rtr01",
-        "interface FastEthernet0/0",
+        "interface FastEthernet1/0",
     )
     state_provider.collect_state.assert_not_called()
 
@@ -187,7 +187,7 @@ def test_post_change_state_collection_failure_does_not_mark_success() -> None:
 
     result = deploy_device(
         hostname="br01-rtr01",
-        candidate_config="interface FastEthernet0/0",
+        candidate_config="interface FastEthernet1/0",
         desired_state=build_desired_state(),
         current_state=build_current_state(),
         pre_change_expectation=build_passing_pre_change_expectation(),
@@ -220,7 +220,7 @@ def test_post_change_validation_failure_does_not_mark_deployment_successful() ->
 
     result = deploy_device(
         hostname="br01-rtr01",
-        candidate_config="interface FastEthernet0/0",
+        candidate_config="interface FastEthernet1/0",
         desired_state=build_desired_state(),
         current_state=build_current_state(),
         pre_change_expectation=build_passing_pre_change_expectation(),
@@ -249,7 +249,7 @@ def test_deployment_succeeds_only_after_post_validation() -> None:
 
     result = deploy_device(
         hostname="br01-rtr01",
-        candidate_config="interface FastEthernet0/0",
+        candidate_config="interface FastEthernet1/0",
         desired_state=build_desired_state(),
         current_state=build_current_state(),
         pre_change_expectation=build_passing_pre_change_expectation(),
@@ -266,7 +266,7 @@ def test_deployment_succeeds_only_after_post_validation() -> None:
 
     executor.apply_config.assert_called_once_with(
         "br01-rtr01",
-        "interface FastEthernet0/0",
+        "interface FastEthernet1/0",
     )
     state_provider.collect_state.assert_called_once_with(
         "br01-rtr01"
@@ -289,7 +289,7 @@ def test_deployment_rejects_current_state_for_wrong_device() -> None:
     ):
         deploy_device(
             hostname="br01-rtr01",
-            candidate_config="interface FastEthernet0/0",
+            candidate_config="interface FastEthernet1/0",
             desired_state=build_desired_state(),
             current_state=current_state,
             pre_change_expectation=build_passing_pre_change_expectation(),
@@ -317,7 +317,7 @@ def test_deployment_rejects_desired_state_for_wrong_device() -> None:
     ):
         deploy_device(
             hostname="br01-rtr01",
-            candidate_config="interface FastEthernet0/0",
+            candidate_config="interface FastEthernet1/0",
             desired_state=desired_state,
             current_state=build_current_state(),
             pre_change_expectation=build_passing_pre_change_expectation(),

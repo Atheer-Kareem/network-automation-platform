@@ -18,7 +18,7 @@ def test_validate_device_against_desired_state() -> None:
     desired = DeviceDesiredState(
         hostname="br01-rtr01",
         role="branch_router",
-        platform="cisco_ios_c7200",
+        platform="cisco_iosv",
         interfaces=[
             InterfaceDesiredState(
                 name="wan",
@@ -31,7 +31,7 @@ def test_validate_device_against_desired_state() -> None:
         hostname="br01-rtr01",
         interfaces=[
             InterfaceState(
-                name="FastEthernet0/0",
+                name="GigabitEthernet0/1",
                 ipv4=IPv4Address("10.101.255.1"),
                 status="up",
                 protocol="up",
@@ -42,7 +42,7 @@ def test_validate_device_against_desired_state() -> None:
             RouteState(
                 protocol="C",
                 network=IPv4Network("10.101.255.0/30"),
-                outgoing_interface="FastEthernet0/0",
+                outgoing_interface="GigabitEthernet0/1",
             )
         ],
     )
