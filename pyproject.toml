@@ -14,7 +14,8 @@ dependencies = [
 ]
 
 [project.scripts]
-network-automation-platform = "network_automation_platform:main"
+nap = "network_automation_platform.cli:main"
+network-automation-platform = "network_automation_platform.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.12.2,<0.13.0"]
