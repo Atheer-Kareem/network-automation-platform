@@ -1,4 +1,4 @@
-from ipaddress import IPv4Address, IPv4Interface, IPv4Network
+from ipaddress import IPv4Interface, IPv4Network
 from pathlib import Path
 
 import pytest
@@ -61,6 +61,8 @@ def test_build_router_validation_expectation() -> None:
         "10.101.10.0/24"
     )
     assert expectation.routes[1].outgoing_interface == "GigabitEthernet0/2.10"
+    assert expectation.interfaces[0].ipv4_prefixlen == 24
+    assert expectation.interfaces[0].description == device.interfaces[0].description
 
 def test_build_desired_state_expectation_rejects_unknown_switch_platform() -> None:
     device = DeviceDesiredState(
@@ -167,6 +169,7 @@ def test_build_switch_validation_expectation() -> None:
             ),
             InterfaceDesiredState(
                 name="management_svi",
+                description="Switch management SVI",
                 vlan_id=99,
                 ipv4=IPv4Interface("10.101.99.21/24"),
             ),
@@ -196,7 +199,10 @@ def test_build_switch_validation_expectation() -> None:
         for interface in expectation.interfaces
         if interface.name == "Vlan99"
     )
-    assert management_svi.ipv4 == IPv4Address("10.101.99.21")
+    assert management_svi.ipv4 is not None
+    assert str(management_svi.ipv4) == "10.101.99.21"
+    assert management_svi.ipv4_prefixlen == 24
+    assert management_svi.description == "Switch management SVI"
     assert management_svi.admin_enabled is True
 
     vlan_ids = {

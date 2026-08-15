@@ -5,19 +5,26 @@ from pydantic import BaseModel, Field
 from network_automation_platform.cisco_ios_remediation import (
     render_device_remediation,
 )
-from network_automation_platform.collectors.cisco_ios import collect_device_state
-from network_automation_platform.connection_settings import ConnectionSettings
+from network_automation_platform.collectors.cisco_ios import (
+    collect_device_state,
+)
+from network_automation_platform.connection_settings import (
+    ConnectionSettings,
+)
 from network_automation_platform.device_resolution import (
     find_inventory_device,
 )
 from network_automation_platform.inventory import DeviceInventory
 from network_automation_platform.models import load_branch_intent
-from network_automation_platform.planning import build_branch_desired_state
+from network_automation_platform.planning import (
+    build_branch_desired_state,
+)
+from network_automation_platform.remediation import (
+    DeviceRemediationPlan,
+)
 from network_automation_platform.remediation_planner import (
     build_device_remediation_plan,
 )
-from network_automation_platform.renderers.cisco_ios import render_device
-from network_automation_platform.validation import ValidationReport
 from network_automation_platform.validation_expectations import (
     build_desired_state_expectation,
 )
@@ -26,35 +33,36 @@ from network_automation_platform.validation_service import (
 )
 
 
-class DevicePlanResult(BaseModel):
+class DeviceBranchRemediationResult(BaseModel):
     hostname: str
-    candidate_config: str
-    validation: ValidationReport
-    remediation_commands: list[str] = Field(default_factory=list)
+    plan: DeviceRemediationPlan
+    commands: list[str] = Field(default_factory=list)
 
 
-
-class BranchPlanResult(BaseModel):
+class BranchRemediationResult(BaseModel):
     branch_id: str
-    devices: list[DevicePlanResult] = Field(default_factory=list)
+    devices: list[DeviceBranchRemediationResult] = Field(
+        default_factory=list
+    )
 
     @property
-    def has_drift(self) -> bool:
+    def has_changes(self) -> bool:
         return any(
-            not device.validation.passed
+            device.plan.has_changes
             for device in self.devices
         )
 
-def plan_branch(
+
+def build_branch_remediation(
     branch_id: str,
     intent_path: Path,
     inventory: DeviceInventory,
     settings: ConnectionSettings,
-) -> BranchPlanResult:
+) -> BranchRemediationResult:
     intent = load_branch_intent(intent_path)
     desired_branch = build_branch_desired_state(intent)
 
-    results: list[DevicePlanResult] = []
+    results: list[DeviceBranchRemediationResult] = []
 
     for desired_device in desired_branch.devices:
         inventory_device = find_inventory_device(
@@ -81,21 +89,19 @@ def plan_branch(
             report=validation,
         )
 
-        remediation_commands = render_device_remediation(
+        commands = render_device_remediation(
             remediation_plan
         )
-        candidate_config = render_device(desired_device)
 
         results.append(
-            DevicePlanResult(
+            DeviceBranchRemediationResult(
                 hostname=desired_device.hostname,
-                candidate_config=candidate_config,
-                validation=validation,
-                remediation_commands=remediation_commands
+                plan=remediation_plan,
+                commands=commands,
             )
         )
 
-    return BranchPlanResult(
+    return BranchRemediationResult(
         branch_id=branch_id,
         devices=results,
     )

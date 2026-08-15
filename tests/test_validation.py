@@ -382,6 +382,7 @@ def test_validate_device_state_fails_missing_vlan() -> None:
     assert report.checks[0].name == "vlan:99"
     assert report.checks[0].status == ValidationStatus.FAIL
     assert report.checks[0].message == "VLAN 99 is missing"
+    assert report.checks[0].reason is None
 
 
 def test_validate_device_state_passes_switchport() -> None:
