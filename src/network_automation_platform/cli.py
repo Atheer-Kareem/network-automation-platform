@@ -17,6 +17,10 @@ from network_automation_platform.device_resolution import (
     DeviceResolutionError,
 )
 from network_automation_platform.inventory import load_device_inventory
+from network_automation_platform.ssh_config import SshConfigError
+from network_automation_platform.ssh_config_writer import (
+    write_ssh_config,
+)
 from network_automation_platform.validation import ValidationStatus
 from network_automation_platform.validation_expectations import (
     ValidationExpectationError,
@@ -42,13 +46,29 @@ def build_parser() -> argparse.ArgumentParser:
         "branch",
         help="Branch identifier, for example branch-01",
     )
+
     plan_parser = subparsers.add_parser(
-    "plan",
-    help="Show branch drift and desired candidate configuration",
-)
+        "plan",
+        help="Show branch drift and desired candidate configuration",
+    )
     plan_parser.add_argument(
         "branch",
         help="Branch identifier, for example branch-01",
+    )
+
+    inventory_parser = subparsers.add_parser(
+        "inventory",
+        help="Manage inventory-derived artifacts",
+    )
+
+    inventory_subparsers = inventory_parser.add_subparsers(
+        dest="inventory_command",
+        required=True,
+    )
+
+    inventory_subparsers.add_parser(
+        "render-ssh-config",
+        help="Render SSH configuration from lab inventory",
     )
 
     return parser
@@ -157,6 +177,25 @@ def run_plan(branch_id: str) -> int:
     print("RESULT: NO DRIFT")
     return 0
 
+def run_render_ssh_config() -> int:
+    inventory_path = Path("inventory/lab.yaml")
+    output_path = Path("inventory/ssh/lab_config")
+
+    try:
+        write_ssh_config(
+            inventory_path,
+            output_path,
+        )
+    except (
+        FileNotFoundError,
+        SshConfigError,
+    ) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
+
+    print(f"Generated: {output_path}")
+    return 0
+
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
@@ -166,3 +205,10 @@ def main() -> None:
 
     if args.command == "plan":
         raise SystemExit(run_plan(args.branch))
+
+    if (
+        args.command == "inventory"
+        and args.inventory_command == "render-ssh-config"
+    ):
+        raise SystemExit(run_render_ssh_config())
+

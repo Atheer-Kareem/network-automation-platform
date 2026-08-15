@@ -1,4 +1,4 @@
-from ipaddress import IPv4Address, IPv4Network
+from ipaddress import IPv4Address
 
 import pytest
 
@@ -18,6 +18,11 @@ from network_automation_platform.validation import (
     VlanExpectation,
     validate_device_state,
 )
+from tests.factories import (
+    TEST_CORE_IP,
+    TEST_OOB_NETWORK,
+    TEST_ROUTER_IP,
+)
 
 
 def test_validate_device_state_fails_missing_interface() -> None:
@@ -27,7 +32,7 @@ def test_validate_device_state_fails_missing_interface() -> None:
         routes=[
             RouteState(
                 protocol="C",
-                network=IPv4Network("192.168.100.0/24"),
+                network=TEST_OOB_NETWORK,
                 outgoing_interface="FastEthernet0/0",
             )
         ],
@@ -37,14 +42,14 @@ def test_validate_device_state_fails_missing_interface() -> None:
         interfaces=[
             InterfaceExpectation(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.100.10"),
+                ipv4=TEST_CORE_IP,
                 status="up",
                 protocol="up",
             )
         ],
         routes=[
             RouteExpectation(
-                network=IPv4Network("192.168.100.0/24"),
+                network=TEST_OOB_NETWORK,
                 protocol="C",
                 outgoing_interface="FastEthernet0/0",
             )
@@ -58,7 +63,7 @@ def test_validate_device_state_fails_missing_interface() -> None:
     assert report.checks[0].status == ValidationStatus.FAIL
     assert report.checks[0].message == "Interface FastEthernet0/0 is missing"
     assert report.checks[1].status == ValidationStatus.PASS
-    assert report.checks[1].message == "Route 192.168.100.0/24 matches expectation"
+    assert report.checks[1].message == f"Route {TEST_OOB_NETWORK} matches expectation"
 
 
 def test_validate_device_state_fails_wrong_interface_ip() -> None:
@@ -67,7 +72,7 @@ def test_validate_device_state_fails_wrong_interface_ip() -> None:
         interfaces=[
             InterfaceState(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.100.11"),
+                ipv4=TEST_ROUTER_IP,
                 status="up",
                 protocol="up",
                 admin_enabled=True,
@@ -76,7 +81,7 @@ def test_validate_device_state_fails_wrong_interface_ip() -> None:
         routes=[
             RouteState(
                 protocol="C",
-                network=IPv4Network("192.168.100.0/24"),
+                network=TEST_OOB_NETWORK,
                 outgoing_interface="FastEthernet0/0",
             )
         ],
@@ -86,14 +91,14 @@ def test_validate_device_state_fails_wrong_interface_ip() -> None:
         interfaces=[
             InterfaceExpectation(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.100.10"),
+                ipv4=TEST_CORE_IP,
                 status="up",
                 protocol="up",
             )
         ],
         routes=[
             RouteExpectation(
-                network=IPv4Network("192.168.100.0/24"),
+                network=TEST_OOB_NETWORK,
                 protocol="C",
                 outgoing_interface="FastEthernet0/0",
             )
@@ -105,9 +110,9 @@ def test_validate_device_state_fails_wrong_interface_ip() -> None:
     assert report.passed is False
     assert len(report.checks) == 2
     assert report.checks[0].status == ValidationStatus.FAIL
-    assert "IPv4 expected 192.168.100.10, got 192.168.100.11" in report.checks[0].message
+    assert f"IPv4 expected {TEST_CORE_IP}, got {TEST_ROUTER_IP}" in report.checks[0].message
     assert report.checks[1].status == ValidationStatus.PASS
-    assert report.checks[1].message == "Route 192.168.100.0/24 matches expectation"
+    assert report.checks[1].message == f"Route {TEST_OOB_NETWORK} matches expectation"
 
 
 def test_validate_device_state_fails_missing_route() -> None:
@@ -116,7 +121,7 @@ def test_validate_device_state_fails_missing_route() -> None:
         interfaces=[
             InterfaceState(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.100.10"),
+                ipv4=TEST_CORE_IP,
                 status="up",
                 protocol="up",
                 admin_enabled=True,
@@ -129,14 +134,14 @@ def test_validate_device_state_fails_missing_route() -> None:
         interfaces=[
             InterfaceExpectation(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.100.10"),
+                ipv4=TEST_CORE_IP,
                 status="up",
                 protocol="up",
             )
         ],
         routes=[
             RouteExpectation(
-                network=IPv4Network("192.168.100.0/24"),
+                network=TEST_OOB_NETWORK,
                 protocol="C",
                 outgoing_interface="FastEthernet0/0",
             )
@@ -150,7 +155,7 @@ def test_validate_device_state_fails_missing_route() -> None:
     assert report.checks[0].status == ValidationStatus.PASS
     assert report.checks[0].message == "Interface FastEthernet0/0 matches expectation"
     assert report.checks[1].status == ValidationStatus.FAIL
-    assert report.checks[1].message == "Route 192.168.100.0/24 is missing"
+    assert report.checks[1].message == f"Route {TEST_OOB_NETWORK} is missing"
 
 def test_validate_device_state_fails_wrong_route_protocol() -> None:
     state = DeviceState(
@@ -158,7 +163,7 @@ def test_validate_device_state_fails_wrong_route_protocol() -> None:
         interfaces=[
             InterfaceState(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.100.10"),
+                ipv4=TEST_CORE_IP,
                 status="up",
                 protocol="up",
                 admin_enabled=True,
@@ -167,7 +172,7 @@ def test_validate_device_state_fails_wrong_route_protocol() -> None:
         routes=[
             RouteState(
                 protocol="O",
-                network=IPv4Network("192.168.100.0/24"),
+                network=TEST_OOB_NETWORK,
                 outgoing_interface="FastEthernet0/0",
             )
         ],
@@ -177,14 +182,14 @@ def test_validate_device_state_fails_wrong_route_protocol() -> None:
         interfaces=[
             InterfaceExpectation(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.100.10"),
+                ipv4=TEST_CORE_IP,
                 status="up",
                 protocol="up",
             )
         ],
         routes=[
             RouteExpectation(
-                network=IPv4Network("192.168.100.0/24"),
+                network=TEST_OOB_NETWORK,
                 protocol="C",
                 outgoing_interface="FastEthernet0/0",
             )
@@ -206,7 +211,7 @@ def test_validate_device_state_passes() -> None:
         interfaces=[
             InterfaceState(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.100.10"),
+                ipv4=TEST_CORE_IP,
                 status="up",
                 protocol="up",
                 admin_enabled=True,
@@ -215,7 +220,7 @@ def test_validate_device_state_passes() -> None:
         routes=[
             RouteState(
                 protocol="C",
-                network=IPv4Network("192.168.100.0/24"),
+                network=TEST_OOB_NETWORK,
                 outgoing_interface="FastEthernet0/0",
             )
         ],
@@ -225,14 +230,14 @@ def test_validate_device_state_passes() -> None:
         interfaces=[
             InterfaceExpectation(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.100.10"),
+                ipv4=TEST_CORE_IP,
                 status="up",
                 protocol="up",
             )
         ],
         routes=[
             RouteExpectation(
-                network=IPv4Network("192.168.100.0/24"),
+                network=TEST_OOB_NETWORK,
                 protocol="C",
                 outgoing_interface="FastEthernet0/0",
             )
@@ -262,12 +267,12 @@ def test_validate_device_state_passes_when_one_matching_route_satisfies_expectat
         routes=[
             RouteState(
                 protocol="O",
-                network=IPv4Network("10.10.10.0/24"),
+                network=TEST_OOB_NETWORK,
                 next_hop=IPv4Address("192.0.2.1"),
             ),
             RouteState(
                 protocol="O",
-                network=IPv4Network("10.10.10.0/24"),
+                network=TEST_OOB_NETWORK,
                 next_hop=IPv4Address("192.0.2.2"),
             ),
         ],
@@ -276,7 +281,7 @@ def test_validate_device_state_passes_when_one_matching_route_satisfies_expectat
     expectation = ValidationExpectation(
         routes=[
             RouteExpectation(
-                network=IPv4Network("10.10.10.0/24"),
+                network=TEST_OOB_NETWORK,
                 protocol="O",
                 next_hop=IPv4Address("192.0.2.2"),
             )

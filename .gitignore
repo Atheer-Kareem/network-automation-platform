@@ -10,4 +10,4 @@ scratch/
 experiments/
 tmp/
 # Local SSH trust state
-inventory/ssh/known_hosts
+inventory/ssh/known_hosts*

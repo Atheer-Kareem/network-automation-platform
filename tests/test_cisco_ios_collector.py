@@ -1,4 +1,4 @@
-from ipaddress import IPv4Address, IPv4Network
+from ipaddress import IPv4Network
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -18,13 +18,18 @@ from network_automation_platform.collectors.cisco_ios import (
 )
 from network_automation_platform.connection_settings import ConnectionSettings
 from network_automation_platform.inventory import InventoryDevice
+from tests.factories import (
+    TEST_CORE_IP,
+    TEST_OOB_NETWORK,
+    TEST_ROUTER_IP,
+)
 
 
 def test_parse_ip_interface_brief() -> None:
     parsed_output = [
         {
             "interface": "FastEthernet0/0",
-            "ip_address": "192.168.100.10",
+            "ip_address": str(TEST_CORE_IP),
             "status": "up",
             "proto": "up",
         },
@@ -41,7 +46,7 @@ def test_parse_ip_interface_brief() -> None:
     assert len(interfaces) == 2
 
     assert interfaces[0].name == "FastEthernet0/0"
-    assert interfaces[0].ipv4 == IPv4Address("192.168.100.10")
+    assert interfaces[0].ipv4 == TEST_CORE_IP
     assert interfaces[0].status == "up"
     assert interfaces[0].protocol == "up"
 
@@ -65,7 +70,7 @@ def test_parse_ip_route() -> None:
             "vrf": "",
             "protocol": "C",
             "type": "",
-            "network": "192.168.100.0",
+            "network":  str(TEST_OOB_NETWORK.network_address),
             "prefix_length": "24",
             "distance": "",
             "metric": "",
@@ -79,7 +84,7 @@ def test_parse_ip_route() -> None:
             "vrf": "",
             "protocol": "L",
             "type": "",
-            "network": "192.168.100.10",
+            "network": str(TEST_CORE_IP),
             "prefix_length": "32",
             "distance": "",
             "metric": "",
@@ -96,12 +101,12 @@ def test_parse_ip_route() -> None:
     assert len(routes) == 2
 
     assert routes[0].protocol == "C"
-    assert routes[0].network == IPv4Network("192.168.100.0/24")
+    assert routes[0].network == TEST_OOB_NETWORK
     assert routes[0].next_hop is None
     assert routes[0].outgoing_interface == "FastEthernet0/0"
 
     assert routes[1].protocol == "L"
-    assert routes[1].network == IPv4Network("192.168.100.10/32")
+    assert routes[1].network == IPv4Network(f"{TEST_CORE_IP}/32")
 
 def test_parse_ip_route_rejects_empty_output() -> None:
     with pytest.raises(
@@ -113,7 +118,7 @@ def test_parse_ip_route_rejects_empty_output() -> None:
 def test_collect_interface_state() -> None:
     device = InventoryDevice(
         hostname="br01-rtr01",
-        host="192.168.100.10",
+        host=str(TEST_CORE_IP),
         port=22,
         driver="cisco_ios",
     )
@@ -130,7 +135,7 @@ def test_collect_interface_state() -> None:
     response.textfsm_parse_output.return_value = [
         {
             "interface": "FastEthernet0/0",
-            "ip_address": "192.168.100.10",
+            "ip_address": str(TEST_CORE_IP),
             "status": "up",
             "proto": "up",
         }
@@ -158,7 +163,7 @@ def test_collect_interface_state() -> None:
 def test_collect_interface_state_rejects_failed_command() -> None:
     device = InventoryDevice(
         hostname="br01-rtr01",
-        host="192.168.100.10",
+        host=str(TEST_CORE_IP),
         port=22,
         driver="cisco_ios",
     )
@@ -189,7 +194,7 @@ def test_collect_interface_state_rejects_failed_command() -> None:
 def test_collect_device_state() -> None:
     device = InventoryDevice(
         hostname="br01-rtr01",
-        host="192.168.100.10",
+        host=str(TEST_ROUTER_IP),
         port=22,
         driver="cisco_ios",
         state_features={"routes", "ospf"},
@@ -207,7 +212,7 @@ def test_collect_device_state() -> None:
     interface_response.textfsm_parse_output.return_value = [
         {
             "interface": "FastEthernet0/0",
-            "ip_address": "192.168.100.10",
+            "ip_address": str(TEST_CORE_IP),
             "status": "up",
             "proto": "up",
         }
@@ -220,7 +225,7 @@ def test_collect_device_state() -> None:
             "vrf": "",
             "protocol": "C",
             "type": "",
-            "network": "192.168.100.0",
+            "network": str(TEST_OOB_NETWORK.network_address),
             "prefix_length": "24",
             "distance": "",
             "metric": "",

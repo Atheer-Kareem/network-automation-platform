@@ -1,4 +1,3 @@
-from ipaddress import IPv4Address, IPv4Network
 
 import pytest
 
@@ -17,6 +16,10 @@ from network_automation_platform.validation import (
     RouteExpectation,
     ValidationStatus,
 )
+from tests.factories import (
+    TEST_CORE_IP,
+    TEST_OOB_NETWORK,
+)
 
 
 def test_pre_change_validation_passes() -> None:
@@ -25,7 +28,7 @@ def test_pre_change_validation_passes() -> None:
         interfaces=[
             InterfaceState(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.100.10"),
+                ipv4=TEST_CORE_IP,
                 status="up",
                 protocol="up",
                 admin_enabled=True,
@@ -40,7 +43,7 @@ def test_pre_change_validation_passes() -> None:
         routes=[
             RouteState(
                 protocol="C",
-                network=IPv4Network("192.168.100.0/24"),
+                network=TEST_OOB_NETWORK,
                 outgoing_interface="FastEthernet0/0",
             )
         ],
@@ -51,7 +54,7 @@ def test_pre_change_validation_passes() -> None:
         required_interfaces=[
             InterfaceExpectation(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.100.10"),
+                ipv4=TEST_CORE_IP,
                 status="up",
                 protocol="up",
             ),
@@ -61,7 +64,7 @@ def test_pre_change_validation_passes() -> None:
         ],
         required_routes=[
             RouteExpectation(
-                network=IPv4Network("192.168.100.0/24"),
+                network=TEST_OOB_NETWORK,
                 protocol="C",
                 outgoing_interface="FastEthernet0/0",
             )
@@ -113,7 +116,7 @@ def test_pre_change_validation_fails_missing_required_route() -> None:
         expected_hostname="br01-rtr01",
         required_routes=[
             RouteExpectation(
-                network=IPv4Network("192.168.100.0/24"),
+                network=TEST_OOB_NETWORK,
                 protocol="C",
             )
         ],
@@ -124,7 +127,7 @@ def test_pre_change_validation_fails_missing_required_route() -> None:
     assert report.passed is False
     assert report.checks[0].status == ValidationStatus.FAIL
     assert report.checks[0].message == (
-        "Route 192.168.100.0/24 is missing"
+        f"Route {TEST_OOB_NETWORK} is missing"
     )
 
 

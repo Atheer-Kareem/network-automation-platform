@@ -12,6 +12,10 @@ from network_automation_platform.validation import (
     ValidationReport,
     ValidationStatus,
 )
+from tests.factories import (
+    TEST_ROUTER_IP,
+    TEST_SWITCH_IP,
+)
 
 
 def test_validate_branch_aggregates_device_results() -> None:
@@ -19,12 +23,12 @@ def test_validate_branch_aggregates_device_results() -> None:
         devices=[
             InventoryDevice(
                 hostname="br01-rtr01",
-                host="192.168.100.11",
+                host=str(TEST_ROUTER_IP),
                 driver="cisco_ios",
             ),
             InventoryDevice(
                 hostname="br01-sw01",
-                host="192.168.100.12",
+                host=str(TEST_SWITCH_IP),
                 driver="cisco_ios",
             ),
         ]
@@ -33,8 +37,8 @@ def test_validate_branch_aggregates_device_results() -> None:
     settings = ConnectionSettings(
         username="netdevops",
         password="test",
-        ssh_config_file=Path("inventory/ssh/lab_config"),
-        ssh_known_hosts_file=Path("inventory/ssh/known_hosts"),
+        ssh_config_file=Path("/tmp/lab_config"),
+        ssh_known_hosts_file=Path("/tmp/known_hosts"),
     )
 
     router_state = DeviceState(

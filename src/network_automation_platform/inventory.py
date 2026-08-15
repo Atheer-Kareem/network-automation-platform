@@ -1,3 +1,4 @@
+from ipaddress import IPv4Network
 from pathlib import Path
 from typing import Literal
 
@@ -11,6 +12,17 @@ StateFeature = Literal[
     "switchports",
 ]
 
+class OobNetwork(BaseModel):
+    network: IPv4Network
+
+class LabSshSettings(BaseModel):
+    username: str
+    kex_algorithms: list[str] = Field(default_factory=list)
+    host_key_algorithms: list[str] = Field(default_factory=list)
+
+class LabSettings(BaseModel):
+    oob: OobNetwork
+    ssh: LabSshSettings
 
 class InventoryDevice(BaseModel):
     hostname: str
@@ -19,10 +31,9 @@ class InventoryDevice(BaseModel):
     driver: Literal["cisco_ios"]
     state_features: set[StateFeature] = Field(default_factory=set)
 
-
 class DeviceInventory(BaseModel):
+    lab: LabSettings | None = None
     devices: list[InventoryDevice]
-
 
 def load_device_inventory(path: Path) -> DeviceInventory:
     with path.open(encoding="utf-8") as file:

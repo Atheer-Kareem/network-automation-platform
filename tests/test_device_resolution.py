@@ -9,6 +9,9 @@ from network_automation_platform.inventory import (
     DeviceInventory,
     InventoryDevice,
 )
+from tests.factories import (
+    TEST_ROUTER_IP,
+)
 
 
 def test_find_inventory_device() -> None:
@@ -22,7 +25,7 @@ def test_find_inventory_device() -> None:
         devices=[
             InventoryDevice(
                 hostname="br01-rtr01",
-                host="192.168.100.11",
+                host=str(TEST_ROUTER_IP),
                 driver="cisco_ios",
             )
         ]
@@ -34,7 +37,7 @@ def test_find_inventory_device() -> None:
     )
 
     assert device.hostname == "br01-rtr01"
-    assert device.host == "192.168.100.11"
+    assert device.host == str(TEST_ROUTER_IP)
 
 
 def test_find_inventory_device_rejects_missing_device() -> None:
