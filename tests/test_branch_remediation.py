@@ -3,8 +3,12 @@ from unittest.mock import patch
 
 from pydantic import SecretStr
 
-from network_automation_platform.branch_plan import plan_branch
-from network_automation_platform.connection_settings import ConnectionSettings
+from network_automation_platform.branch_remediation import (
+    build_branch_remediation,
+)
+from network_automation_platform.connection_settings import (
+    ConnectionSettings,
+)
 from network_automation_platform.device_state import DeviceState
 from network_automation_platform.inventory import DeviceInventory
 from network_automation_platform.remediation import (
@@ -26,7 +30,7 @@ from tests.factories import (
 )
 
 
-def test_plan_branch_aggregates_device_plans() -> None:
+def test_build_branch_remediation_aggregates_device_results() -> None:
     inventory = DeviceInventory(
         devices=[
             make_inventory_device(
@@ -97,20 +101,17 @@ def test_plan_branch_aggregates_device_plans() -> None:
         ]
     )
 
-    router_remediation = DeviceRemediationPlan(
+    router_plan = DeviceRemediationPlan(
         hostname="br01-rtr01",
     )
 
-    switch_remediation = DeviceRemediationPlan(
+    switch_plan = DeviceRemediationPlan(
         hostname="br01-sw01",
     )
 
-    router_candidate = "hostname br01-rtr01"
-    switch_candidate = "hostname br01-sw01"
-
     with (
         patch(
-            "network_automation_platform.branch_plan."
+            "network_automation_platform.branch_remediation."
             "collect_device_state",
             side_effect=[
                 router_state,
@@ -118,7 +119,7 @@ def test_plan_branch_aggregates_device_plans() -> None:
             ],
         ) as collect_mock,
         patch(
-            "network_automation_platform.branch_plan."
+            "network_automation_platform.branch_remediation."
             "validate_device_against_desired_state",
             side_effect=[
                 router_report,
@@ -126,7 +127,7 @@ def test_plan_branch_aggregates_device_plans() -> None:
             ],
         ) as validate_mock,
         patch(
-            "network_automation_platform.branch_plan."
+            "network_automation_platform.branch_remediation."
             "build_desired_state_expectation",
             side_effect=[
                 router_expectation,
@@ -134,31 +135,23 @@ def test_plan_branch_aggregates_device_plans() -> None:
             ],
         ) as expectation_mock,
         patch(
-            "network_automation_platform.branch_plan."
+            "network_automation_platform.branch_remediation."
             "build_device_remediation_plan",
             side_effect=[
-                router_remediation,
-                switch_remediation,
+                router_plan,
+                switch_plan,
             ],
-        ) as remediation_mock,
+        ) as plan_mock,
         patch(
-            "network_automation_platform.branch_plan."
+            "network_automation_platform.branch_remediation."
             "render_device_remediation",
             side_effect=[
                 [],
                 [],
             ],
-        ) as remediation_render_mock,
-        patch(
-            "network_automation_platform.branch_plan."
-            "render_device",
-            side_effect=[
-                router_candidate,
-                switch_candidate,
-            ],
         ) as render_mock,
     ):
-        result = plan_branch(
+        result = build_branch_remediation(
             "branch-01",
             intent_path=Path(
                 "intent/branches/branch-01.yaml"
@@ -168,34 +161,24 @@ def test_plan_branch_aggregates_device_plans() -> None:
         )
 
     assert result.branch_id == "branch-01"
-    assert result.has_drift is False
+    assert result.has_changes is False
     assert len(result.devices) == 2
 
     assert result.devices[0].hostname == "br01-rtr01"
-    assert result.devices[0].validation is router_report
-    assert (
-        result.devices[0].candidate_config
-        == router_candidate
-    )
-    assert result.devices[0].remediation_commands == []
+    assert result.devices[0].plan is router_plan
+    assert result.devices[0].commands == []
 
     assert result.devices[1].hostname == "br01-sw01"
-    assert result.devices[1].validation is switch_report
-    assert (
-        result.devices[1].candidate_config
-        == switch_candidate
-    )
-    assert result.devices[1].remediation_commands == []
+    assert result.devices[1].plan is switch_plan
+    assert result.devices[1].commands == []
 
     assert collect_mock.call_count == 2
     assert validate_mock.call_count == 2
     assert expectation_mock.call_count == 2
-    assert remediation_mock.call_count == 2
-    assert remediation_render_mock.call_count == 2
+    assert plan_mock.call_count == 2
     assert render_mock.call_count == 2
 
-
-def test_plan_branch_reports_drift_with_targeted_remediation() -> None:
+def test_build_branch_remediation_detects_targeted_change() -> None:
     inventory = DeviceInventory(
         devices=[
             make_inventory_device(
@@ -267,11 +250,11 @@ def test_plan_branch_reports_drift_with_targeted_remediation() -> None:
         ]
     )
 
-    router_remediation = DeviceRemediationPlan(
+    router_plan = DeviceRemediationPlan(
         hostname="br01-rtr01",
     )
 
-    switch_remediation = DeviceRemediationPlan(
+    switch_plan = DeviceRemediationPlan(
         hostname="br01-sw01",
         actions=[
             RemediationAction(
@@ -287,9 +270,6 @@ def test_plan_branch_reports_drift_with_targeted_remediation() -> None:
         ],
     )
 
-    router_candidate = "hostname br01-rtr01"
-    switch_candidate = "hostname br01-sw01"
-
     switch_commands = [
         "interface Vlan99",
         "description Switch management SVI",
@@ -299,7 +279,7 @@ def test_plan_branch_reports_drift_with_targeted_remediation() -> None:
 
     with (
         patch(
-            "network_automation_platform.branch_plan."
+            "network_automation_platform.branch_remediation."
             "collect_device_state",
             side_effect=[
                 router_state,
@@ -307,7 +287,7 @@ def test_plan_branch_reports_drift_with_targeted_remediation() -> None:
             ],
         ),
         patch(
-            "network_automation_platform.branch_plan."
+            "network_automation_platform.branch_remediation."
             "validate_device_against_desired_state",
             side_effect=[
                 router_report,
@@ -315,7 +295,7 @@ def test_plan_branch_reports_drift_with_targeted_remediation() -> None:
             ],
         ),
         patch(
-            "network_automation_platform.branch_plan."
+            "network_automation_platform.branch_remediation."
             "build_desired_state_expectation",
             side_effect=[
                 router_expectation,
@@ -323,31 +303,23 @@ def test_plan_branch_reports_drift_with_targeted_remediation() -> None:
             ],
         ),
         patch(
-            "network_automation_platform.branch_plan."
+            "network_automation_platform.branch_remediation."
             "build_device_remediation_plan",
             side_effect=[
-                router_remediation,
-                switch_remediation,
+                router_plan,
+                switch_plan,
             ],
         ),
         patch(
-            "network_automation_platform.branch_plan."
+            "network_automation_platform.branch_remediation."
             "render_device_remediation",
             side_effect=[
                 [],
                 switch_commands,
             ],
         ),
-        patch(
-            "network_automation_platform.branch_plan."
-            "render_device",
-            side_effect=[
-                router_candidate,
-                switch_candidate,
-            ],
-        ),
     ):
-        result = plan_branch(
+        result = build_branch_remediation(
             "branch-01",
             intent_path=Path(
                 "intent/branches/branch-01.yaml"
@@ -356,21 +328,6 @@ def test_plan_branch_reports_drift_with_targeted_remediation() -> None:
             settings=settings,
         )
 
-    assert result.has_drift is True
-
-    assert result.devices[0].validation.passed is True
-    assert result.devices[0].remediation_commands == []
-    assert (
-        result.devices[0].candidate_config
-        == router_candidate
-    )
-
-    assert result.devices[1].validation.passed is False
-    assert (
-        result.devices[1].candidate_config
-        == switch_candidate
-    )
-    assert (
-        result.devices[1].remediation_commands
-        == switch_commands
-    )
+    assert result.has_changes is True
+    assert result.devices[0].commands == []
+    assert result.devices[1].commands == switch_commands

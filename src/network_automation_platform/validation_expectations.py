@@ -56,6 +56,12 @@ def _build_router_expectation(
                     if interface.ipv4 is not None
                     else None
                 ),
+                ipv4_prefixlen=(
+                    interface.ipv4.network.prefixlen
+                    if interface.ipv4 is not None
+                    else None
+                ),
+                description=interface.description,
                 admin_enabled=interface.enabled,
             )
         )
@@ -112,6 +118,12 @@ def _build_switch_expectation(
                         if interface.ipv4 is not None
                         else None
                     ),
+                    ipv4_prefixlen=(
+                        interface.ipv4.network.prefixlen
+                        if interface.ipv4 is not None
+                        else None
+                    ),
+                    description=interface.description,
                     admin_enabled=interface.enabled,
                 )
             )
@@ -129,6 +141,7 @@ def _build_switch_expectation(
         interfaces.append(
             InterfaceExpectation(
                 name=physical_name,
+                description=interface.description,
                 admin_enabled=interface.enabled,
             )
         )

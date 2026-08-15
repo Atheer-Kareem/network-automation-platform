@@ -10,6 +10,7 @@ from network_automation_platform.branch_validation import (
 )
 from network_automation_platform.cli import (
     build_parser,
+    confirm_deployment,
     run_plan,
     run_render_ssh_config,
     run_validate,
@@ -80,6 +81,7 @@ def test_run_validate_returns_zero_when_branch_is_compliant(
     assert exit_code == 0
     assert "br01-rtr01: PASS" in output
     assert "RESULT: COMPLIANT" in output
+    assert "Targeted remediation:" not in output
 
 def test_run_validate_returns_one_when_drift_is_detected(
     capsys,
@@ -180,24 +182,25 @@ def test_run_plan_returns_zero_when_no_drift(
                     hostname="br01-rtr01",
                     checks=[
                         ValidationCheck(
-                            name="interface:GigabitEthernet0/1",
+                            name="router-check",
                             status=ValidationStatus.PASS,
-                            message="Interface matches expectation",
+                            message="Router matches expectation",
                         )
                     ],
                 ),
+                remediation_commands=[],
             )
         ],
     )
 
     with (
         patch(
-            "network_automation_platform.cli.load_device_inventory",
-            return_value=MagicMock(),
+            "network_automation_platform.cli."
+            "load_device_inventory"
         ),
         patch(
-            "network_automation_platform.cli.load_connection_settings",
-            return_value=MagicMock(),
+            "network_automation_platform.cli."
+            "load_connection_settings"
         ),
         patch(
             "network_automation_platform.cli.plan_branch",
@@ -210,7 +213,8 @@ def test_run_plan_returns_zero_when_no_drift(
 
     assert exit_code == 0
     assert "br01-rtr01: COMPLIANT" in output
-    assert "hostname br01-rtr01" in output
+    assert "Targeted remediation:" not in output
+    assert "Candidate configuration:" in output
     assert "RESULT: NO DRIFT" in output
 
 def test_run_plan_returns_one_when_drift_is_detected(
@@ -232,6 +236,12 @@ def test_run_plan_returns_one_when_drift_is_detected(
                         )
                     ],
                 ),
+                remediation_commands=[
+                    "interface Vlan99",
+                    "description Switch management SVI",
+                    "ip address 10.101.99.21 255.255.255.0",
+                    "no shutdown",
+                ]
             )
         ],
     )
@@ -259,6 +269,14 @@ def test_run_plan_returns_one_when_drift_is_detected(
     assert "Interface Vlan99 is missing" in output
     assert "hostname br01-sw01" in output
     assert "RESULT: DRIFT DETECTED" in output
+    assert "Targeted remediation:" in output
+    assert "interface Vlan99" in output
+    assert "description Switch management SVI" in output
+    assert (
+        "ip address 10.101.99.21 255.255.255.0"
+        in output
+    )
+    assert "no shutdown" in output
 
 def test_run_plan_returns_two_on_application_error(
     capsys,
@@ -314,3 +332,78 @@ def test_run_render_ssh_config_returns_zero(
     assert exit_code == 0
     assert write_mock.call_count == 1
     assert "Generated: inventory/ssh/lab_config" in output
+
+def test_run_plan_reports_unsupported_remediation(
+    capsys,
+) -> None:
+    result = BranchPlanResult(
+        branch_id="branch-01",
+        devices=[
+            DevicePlanResult(
+                hostname="br01-sw01",
+                candidate_config="hostname br01-sw01",
+                validation=ValidationReport(
+                    hostname="br01-sw01",
+                    checks=[
+                        ValidationCheck(
+                            name="vlan:99",
+                            status=ValidationStatus.FAIL,
+                            message="VLAN 99 is missing",
+                        )
+                    ],
+                ),
+                remediation_commands=[],
+            )
+        ],
+    )
+
+    with (
+        patch(
+            "network_automation_platform.cli."
+            "load_device_inventory"
+        ),
+        patch(
+            "network_automation_platform.cli."
+            "load_connection_settings"
+        ),
+        patch(
+            "network_automation_platform.cli.plan_branch",
+            return_value=result,
+        ),
+    ):
+        exit_code = run_plan("branch-01")
+
+    output = capsys.readouterr().out
+
+    assert exit_code == 1
+    assert "DRIFT" in output
+    assert "VLAN 99 is missing" in output
+    assert "Targeted remediation:" in output
+    assert (
+        "No supported targeted remediation available."
+        in output
+    )
+
+def test_confirm_deployment_accepts_yes() -> None:
+    with patch(
+        "builtins.input",
+        return_value="y",
+    ):
+        approved = confirm_deployment(
+            "br01-sw01",
+            ["interface Vlan99"],
+        )
+
+    assert approved is True
+
+def test_confirm_deployment_defaults_to_no() -> None:
+    with patch(
+        "builtins.input",
+        return_value="",
+    ):
+        approved = confirm_deployment(
+            "br01-sw01",
+            ["interface Vlan99"],
+        )
+
+    assert approved is False

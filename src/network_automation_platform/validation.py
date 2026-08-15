@@ -1,10 +1,15 @@
 from enum import StrEnum
 from ipaddress import IPv4Address, IPv4Network
+from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
 from network_automation_platform.device_state import DeviceState, RouteState
 
+ValidationReason = Literal[
+    "missing",
+    "mismatch",
+]
 
 class ValidationStatus(StrEnum):
     PASS = "pass"
@@ -14,6 +19,12 @@ class ValidationStatus(StrEnum):
 class InterfaceExpectation(BaseModel):
     name: str
     ipv4: IPv4Address | None = None
+    ipv4_prefixlen: int | None = Field(
+        default=None,
+        ge=0,
+        le=32,
+    )
+    description: str | None = None
     status: str | None = None
     protocol: str | None = None
     admin_enabled: bool | None = None
@@ -69,6 +80,7 @@ class ValidationCheck(BaseModel):
     name: str
     status: ValidationStatus
     message: str
+    reason: ValidationReason | None = None
 
 
 class ValidationReport(BaseModel):
@@ -126,6 +138,7 @@ def validate_device_state(
                     name=f"interface:{expected.name}",
                     status=ValidationStatus.FAIL,
                     message=f"Interface {expected.name} is missing",
+                    reason="missing",
                 )
             )
             continue
