@@ -11,6 +11,7 @@ from network_automation_platform.branch_validation import (
 from network_automation_platform.cli import (
     build_parser,
     run_plan,
+    run_render_ssh_config,
     run_validate,
 )
 from network_automation_platform.connection_settings import (
@@ -286,3 +287,30 @@ def test_run_plan_returns_two_on_application_error(
         "NAP_DEVICE_USERNAME"
         in captured.err
     )
+
+def test_build_parser_parses_inventory_render_ssh_config() -> None:
+    parser = build_parser()
+
+    args = parser.parse_args(
+        [
+            "inventory",
+            "render-ssh-config",
+        ]
+    )
+
+    assert args.command == "inventory"
+    assert args.inventory_command == "render-ssh-config"
+
+def test_run_render_ssh_config_returns_zero(
+    capsys,
+) -> None:
+    with patch(
+        "network_automation_platform.cli.write_ssh_config"
+    ) as write_mock:
+        exit_code = run_render_ssh_config()
+
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert write_mock.call_count == 1
+    assert "Generated: inventory/ssh/lab_config" in output

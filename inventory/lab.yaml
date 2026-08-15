@@ -1,6 +1,17 @@
+lab:
+  oob:
+    network: 192.168.4.0/24
+
+  ssh:
+    username: netdevops
+    kex_algorithms:
+      - diffie-hellman-group14-sha1
+    host_key_algorithms:
+      - ssh-rsa
+
 devices:
   - hostname: core01
-    host: 192.168.100.10
+    host: 192.168.4.10
     port: 22
     driver: cisco_ios
     state_features:
@@ -8,7 +19,7 @@ devices:
       - ospf
 
   - hostname: br01-rtr01
-    host: 192.168.100.11
+    host: 192.168.4.11
     port: 22
     driver: cisco_ios
     state_features:
@@ -16,7 +27,7 @@ devices:
       - ospf
 
   - hostname: br01-sw01
-    host: 192.168.100.12
+    host: 192.168.4.12
     port: 22
     driver: cisco_ios
     state_features:

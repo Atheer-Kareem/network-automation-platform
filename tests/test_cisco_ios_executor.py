@@ -14,12 +14,15 @@ from network_automation_platform.executors.cisco_ios import (
     CiscoIosDeploymentExecutor,
 )
 from network_automation_platform.inventory import InventoryDevice
+from tests.factories import (
+    TEST_ROUTER_IP,
+)
 
 
 def build_device() -> InventoryDevice:
     return InventoryDevice(
         hostname="br01-rtr01",
-        host="192.168.100.10",
+        host=str(TEST_ROUTER_IP),
         port=22,
         driver="cisco_ios",
     )
@@ -29,8 +32,8 @@ def build_settings() -> ConnectionSettings:
     return ConnectionSettings(
         username="netdevops",
         password=SecretStr("test-password"),
-        ssh_config_file=Path("inventory/ssh/lab_config"),
-        ssh_known_hosts_file=Path("inventory/ssh/known_hosts"),
+        ssh_config_file=Path("/tmp/lab_config"),
+        ssh_known_hosts_file=Path("/tmp/known_hosts"),
     )
 
 

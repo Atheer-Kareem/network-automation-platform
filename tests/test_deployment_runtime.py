@@ -1,4 +1,4 @@
-from ipaddress import IPv4Address, IPv4Interface, IPv4Network
+from ipaddress import IPv4Interface
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -29,12 +29,17 @@ from network_automation_platform.validation import (
     InterfaceExpectation,
     RouteExpectation,
 )
+from tests.factories import (
+    TEST_CORE_IP,
+    TEST_OOB_NETWORK,
+    TEST_ROUTER_IP,
+)
 
 
 def build_device() -> InventoryDevice:
     return InventoryDevice(
         hostname="br01-rtr01",
-        host="192.168.100.10",
+        host=str(TEST_ROUTER_IP),
         port=22,
         driver="cisco_ios",
     )
@@ -55,7 +60,7 @@ def build_current_state() -> DeviceState:
         interfaces=[
             InterfaceState(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.100.10"),
+                ipv4=TEST_CORE_IP,
                 status="up",
                 protocol="up",
                 admin_enabled=True,
@@ -64,7 +69,7 @@ def build_current_state() -> DeviceState:
         routes=[
             RouteState(
                 protocol="C",
-                network=IPv4Network("192.168.100.0/24"),
+                network=TEST_OOB_NETWORK,
                 outgoing_interface="FastEthernet0/0",
             )
         ],
@@ -91,14 +96,14 @@ def build_pre_change_expectation() -> PreChangeExpectation:
         required_interfaces=[
             InterfaceExpectation(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.100.10"),
+                ipv4=TEST_CORE_IP,
                 status="up",
                 protocol="up",
             )
         ],
         required_routes=[
             RouteExpectation(
-                network=IPv4Network("192.168.100.0/24"),
+                network=TEST_OOB_NETWORK,
                 protocol="C",
                 outgoing_interface="FastEthernet0/0",
             )

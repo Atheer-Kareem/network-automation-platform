@@ -14,6 +14,7 @@ from network_automation_platform.validation_expectations import (
     ValidationExpectationError,
     build_desired_state_expectation,
 )
+from tests.factories import TEST_CORE_IP, TEST_OOB_NETWORK
 
 
 def test_build_router_validation_expectation() -> None:
@@ -24,7 +25,7 @@ def test_build_router_validation_expectation() -> None:
         interfaces=[
             InterfaceDesiredState(
                 name="wan",
-                ipv4=IPv4Interface("192.168.100.10/24"),
+                ipv4=IPv4Interface(f"{TEST_CORE_IP}/{TEST_OOB_NETWORK.prefixlen}"),
             ),
             InterfaceDesiredState(
                 name="lan",
@@ -44,7 +45,7 @@ def test_build_router_validation_expectation() -> None:
     assert len(expectation.routes) == 2
 
     assert expectation.interfaces[0].name == "GigabitEthernet0/1"
-    assert expectation.interfaces[0].ipv4.exploded == "192.168.100.10"
+    assert expectation.interfaces[0].ipv4 == TEST_CORE_IP
 
     assert expectation.interfaces[1].name == "GigabitEthernet0/2"
     assert expectation.interfaces[1].ipv4 is None
@@ -52,9 +53,7 @@ def test_build_router_validation_expectation() -> None:
     assert expectation.interfaces[2].name == "GigabitEthernet0/2.10"
     assert expectation.interfaces[2].ipv4.exploded == "10.101.10.1"
 
-    assert expectation.routes[0].network == IPv4Network(
-        "192.168.100.0/24"
-    )
+    assert expectation.routes[0].network == IPv4Network(f"{TEST_OOB_NETWORK.network_address}/{TEST_OOB_NETWORK.prefixlen}")
     assert expectation.routes[0].protocol == "C"
     assert expectation.routes[0].outgoing_interface == "GigabitEthernet0/1"
 
@@ -84,7 +83,7 @@ def test_build_desired_state_expectation_rejects_unknown_platform() -> None:
         interfaces=[
             InterfaceDesiredState(
                 name="wan",
-                ipv4=IPv4Interface("192.168.100.10/24"),
+                ipv4=IPv4Interface(f"{TEST_CORE_IP}/{TEST_OOB_NETWORK.prefixlen}"),
             )
         ],
     )

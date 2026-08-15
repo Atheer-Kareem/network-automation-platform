@@ -1,4 +1,3 @@
-from ipaddress import IPv4Address, IPv4Network
 from pathlib import Path
 from unittest.mock import patch
 
@@ -23,12 +22,17 @@ from network_automation_platform.inventory import InventoryDevice
 from network_automation_platform.state_providers.cisco_ios import (
     CiscoIosDeviceStateProvider,
 )
+from tests.factories import (
+    TEST_CORE_IP,
+    TEST_OOB_NETWORK,
+    TEST_ROUTER_IP,
+)
 
 
 def build_device() -> InventoryDevice:
     return InventoryDevice(
         hostname="br01-rtr01",
-        host="192.168.100.10",
+        host=str(TEST_ROUTER_IP),
         port=22,
         driver="cisco_ios",
     )
@@ -38,8 +42,8 @@ def build_settings() -> ConnectionSettings:
     return ConnectionSettings(
         username="netdevops",
         password=SecretStr("test-password"),
-        ssh_config_file=Path("inventory/ssh/lab_config"),
-        ssh_known_hosts_file=Path("inventory/ssh/known_hosts"),
+        ssh_config_file=Path("/tmp/lab_config"),
+        ssh_known_hosts_file=Path("/tmp/known_hosts"),
     )
 
 
@@ -49,7 +53,7 @@ def build_device_state() -> DeviceState:
         interfaces=[
             InterfaceState(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.100.10"),
+                ipv4=TEST_CORE_IP,
                 status="up",
                 protocol="up",
                 admin_enabled=True,
@@ -58,7 +62,7 @@ def build_device_state() -> DeviceState:
         routes=[
             RouteState(
                 protocol="C",
-                network=IPv4Network("192.168.100.0/24"),
+                network=TEST_OOB_NETWORK,
                 outgoing_interface="FastEthernet0/0",
             )
         ],

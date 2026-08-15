@@ -15,20 +15,23 @@ from network_automation_platform.validation import (
     ValidationReport,
     ValidationStatus,
 )
+from tests.factories import (
+    TEST_ROUTER_IP,
+    TEST_SWITCH_IP,
+    make_inventory_device,
+)
 
 
 def test_plan_branch_aggregates_device_plans() -> None:
     inventory = DeviceInventory(
         devices=[
-            InventoryDevice(
+            make_inventory_device(
                 hostname="br01-rtr01",
-                host="192.168.100.11",
-                driver="cisco_ios",
+                host=str(TEST_ROUTER_IP),
             ),
-            InventoryDevice(
+            make_inventory_device(
                 hostname="br01-sw01",
-                host="192.168.100.12",
-                driver="cisco_ios",
+                host=str(TEST_SWITCH_IP),
             ),
         ]
     )
@@ -36,8 +39,8 @@ def test_plan_branch_aggregates_device_plans() -> None:
     settings = ConnectionSettings(
         username="netdevops",
         password=SecretStr("test"),
-        ssh_config_file=Path("inventory/ssh/lab_config"),
-        ssh_known_hosts_file=Path("inventory/ssh/known_hosts"),
+        ssh_config_file=Path("/tmp/lab_config"),
+        ssh_known_hosts_file=Path("/tmp/known_hosts"),
     )
 
     router_state = DeviceState(
@@ -140,12 +143,12 @@ def test_plan_branch_reports_drift() -> None:
         devices=[
             InventoryDevice(
                 hostname="br01-rtr01",
-                host="192.168.100.11",
+                host=str(TEST_ROUTER_IP),
                 driver="cisco_ios",
             ),
             InventoryDevice(
                 hostname="br01-sw01",
-                host="192.168.100.12",
+                host=str(TEST_SWITCH_IP),
                 driver="cisco_ios",
             ),
         ]
@@ -154,8 +157,8 @@ def test_plan_branch_reports_drift() -> None:
     settings = ConnectionSettings(
         username="netdevops",
         password=SecretStr("test"),
-        ssh_config_file=Path("inventory/ssh/lab_config"),
-        ssh_known_hosts_file=Path("inventory/ssh/known_hosts"),
+        ssh_config_file=Path("/tmp/lab_config"),
+        ssh_known_hosts_file=Path("/tmp/known_hosts"),
     )
 
     router_state = DeviceState(

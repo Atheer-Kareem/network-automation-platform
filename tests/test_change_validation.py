@@ -26,6 +26,10 @@ from network_automation_platform.validation import (
 from network_automation_platform.validation_service import (
     ValidationServiceError,
 )
+from tests.factories import (
+    TEST_CORE_IP,
+    TEST_OOB_NETWORK,
+)
 
 
 def test_run_post_change_validation_passes() -> None:
@@ -89,7 +93,7 @@ def test_run_post_change_validation_fails() -> None:
         interfaces=[
             InterfaceState(
                 name="GigabitEthernet0/0",
-                ipv4=IPv4Address("192.168.100.10"),
+                ipv4=TEST_CORE_IP,
                 status="up",
                 protocol="up",
                 admin_enabled=True,
@@ -98,7 +102,7 @@ def test_run_post_change_validation_fails() -> None:
         routes=[
             RouteState(
                 protocol="C",
-                network=IPv4Network("192.168.100.0/24"),
+                network=TEST_OOB_NETWORK,
                 outgoing_interface="GigabitEthernet0/0",
             )
         ],
@@ -150,7 +154,7 @@ def test_run_pre_change_validation_returns_pre_change_phase() -> None:
         interfaces=[
             InterfaceState(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.100.10"),
+                ipv4=TEST_CORE_IP,
                 status="up",
                 protocol="up",
                 admin_enabled=True,
@@ -159,7 +163,7 @@ def test_run_pre_change_validation_returns_pre_change_phase() -> None:
         routes=[
             RouteState(
                 protocol="C",
-                network=IPv4Network("192.168.100.0/24"),
+                network=TEST_OOB_NETWORK,
                 outgoing_interface="FastEthernet0/0",
             )
         ],
@@ -170,14 +174,14 @@ def test_run_pre_change_validation_returns_pre_change_phase() -> None:
         required_interfaces=[
             InterfaceExpectation(
                 name="FastEthernet0/0",
-                ipv4=IPv4Address("192.168.100.10"),
+                ipv4=TEST_CORE_IP,
                 status="up",
                 protocol="up",
             )
         ],
         required_routes=[
             RouteExpectation(
-                network=IPv4Network("192.168.100.0/24"),
+                network=TEST_OOB_NETWORK,
                 protocol="C",
                 outgoing_interface="FastEthernet0/0",
             )

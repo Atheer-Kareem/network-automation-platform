@@ -46,16 +46,22 @@ The lab topology is representative of the logical production design but is not p
 ## Management and Data-Plane Separation
 
 The representative lab separates out-of-band management from branch production traffic.
+The authoritative source for lab OOB addressing is `inventory/lab.yaml`.
+
+This document describes the current representative topology but is not a runtime configuration source. Generated SSH configuration is derived from the inventory.
+SSH host keys are maintained separately in `inventory/ssh/known_hosts`.
+This file represents learned runtime trust state and is not generated from inventory.
+It may require refresh when device addresses or device identities change.
 
 The dedicated OOB management network is:
 
-`192.168.100.0/24`
+`192.168.4.0/24`
 
 Current OOB addresses are:
 
-- `core01` — `192.168.100.10`
-- `br01-rtr01` — `192.168.100.11`
-- `br01-sw01` — `192.168.100.12`
+- `core01` — `192.168.4.10`
+- `br01-rtr01` — `192.168.4.11`
+- `br01-sw01` — `192.168.4.12`
 
 On the IOSv and IOSvL2 devices, `GigabitEthernet0/0` is reserved for out-of-band management.
 
