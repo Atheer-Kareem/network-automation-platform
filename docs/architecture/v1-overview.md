@@ -458,7 +458,6 @@ Controlled deployment currently has the following limitations:
 
 - Cisco IOS / IOS XE CLI-oriented execution path;
 - targeted remediation currently supports missing interface / SVI drift only;
-- branch-wide deployment preflight before the first write is not yet implemented;
 - single-device synchronous execution remains the write-boundary model;
 - no automatic rollback;
 - no automatic persistence of running configuration to startup configuration;

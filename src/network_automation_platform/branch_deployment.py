@@ -17,22 +17,34 @@ from network_automation_platform.deployment import DeploymentResult
 from network_automation_platform.deployment_runtime import (
     deploy_inventory_device,
 )
+from network_automation_platform.desired_state import (
+    DeviceDesiredState,
+)
 from network_automation_platform.device_resolution import (
     find_inventory_device,
 )
-from network_automation_platform.inventory import DeviceInventory
+from network_automation_platform.device_state import DeviceState
+from network_automation_platform.inventory import (
+    DeviceInventory,
+    InventoryDevice,
+)
 from network_automation_platform.models import load_branch_intent
 from network_automation_platform.planning import (
     build_branch_desired_state,
 )
 from network_automation_platform.pre_change_expectation_builder import (
+    PreChangeExpectationBuildError,
     build_pre_change_expectation,
+)
+from network_automation_platform.pre_change_validation import (
+    PreChangeExpectation,
 )
 from network_automation_platform.remediation_planner import (
     build_device_remediation_plan,
     is_supported_remediation_check,
 )
 from network_automation_platform.validation import (
+    ValidationReport,
     ValidationStatus,
 )
 from network_automation_platform.validation_expectations import (
@@ -74,18 +86,50 @@ class BranchDeploymentResult(BaseModel):
             for device in self.devices
         )
 
+class BranchDevicePreflightStatus(StrEnum):
+    COMPLIANT = "compliant"
+    READY = "ready"
+    BLOCKED = "blocked"
 
-def deploy_branch(
+
+class DeviceDeploymentPreflight(BaseModel):
+    hostname: str
+    status: BranchDevicePreflightStatus
+    desired_state: DeviceDesiredState
+    inventory_device: InventoryDevice
+    current_state: DeviceState
+    validation: ValidationReport
+    remediation_commands: list[str] = Field(
+        default_factory=list
+    )
+    pre_change_expectation: PreChangeExpectation | None = None
+    message: str
+
+
+class BranchDeploymentPreflight(BaseModel):
+    branch_id: str
+    devices: list[DeviceDeploymentPreflight] = Field(
+        default_factory=list
+    )
+
+    @property
+    def blocked(self) -> bool:
+        return any(
+            device.status
+            == BranchDevicePreflightStatus.BLOCKED
+            for device in self.devices
+        )
+
+def _build_branch_preflight(
     branch_id: str,
     intent_path: Path,
     inventory: DeviceInventory,
     settings: ConnectionSettings,
-    approve: DeploymentApproval,
-) -> BranchDeploymentResult:
+) -> BranchDeploymentPreflight:
     intent = load_branch_intent(intent_path)
     desired_branch = build_branch_desired_state(intent)
 
-    results: list[DeviceBranchDeploymentResult] = []
+    devices: list[DeviceDeploymentPreflight] = []
 
     for desired_device in desired_branch.devices:
         inventory_device = find_inventory_device(
@@ -104,10 +148,16 @@ def deploy_branch(
         )
 
         if validation.passed:
-            results.append(
-                DeviceBranchDeploymentResult(
+            devices.append(
+                DeviceDeploymentPreflight(
                     hostname=desired_device.hostname,
-                    status=BranchDeviceDeploymentStatus.SKIPPED,
+                    status=(
+                        BranchDevicePreflightStatus.COMPLIANT
+                    ),
+                    desired_state=desired_device,
+                    inventory_device=inventory_device,
+                    current_state=current_state,
+                    validation=validation,
                     message="Device is already compliant",
                 )
             )
@@ -131,10 +181,16 @@ def deploy_branch(
                 for check in unsupported_checks
             )
 
-            results.append(
-                DeviceBranchDeploymentResult(
+            devices.append(
+                DeviceDeploymentPreflight(
                     hostname=desired_device.hostname,
-                    status=BranchDeviceDeploymentStatus.BLOCKED,
+                    status=(
+                        BranchDevicePreflightStatus.BLOCKED
+                    ),
+                    desired_state=desired_device,
+                    inventory_device=inventory_device,
+                    current_state=current_state,
+                    validation=validation,
                     message=(
                         "Deployment blocked because unsupported "
                         f"drift is present: {names}"
@@ -157,10 +213,16 @@ def deploy_branch(
         )
 
         if not remediation_commands:
-            results.append(
-                DeviceBranchDeploymentResult(
+            devices.append(
+                DeviceDeploymentPreflight(
                     hostname=desired_device.hostname,
-                    status=BranchDeviceDeploymentStatus.BLOCKED,
+                    status=(
+                        BranchDevicePreflightStatus.BLOCKED
+                    ),
+                    desired_state=desired_device,
+                    inventory_device=inventory_device,
+                    current_state=current_state,
+                    validation=validation,
                     message=(
                         "Deployment blocked because no targeted "
                         "remediation commands were produced"
@@ -169,39 +231,244 @@ def deploy_branch(
             )
             continue
 
-        if not approve(
-            desired_device.hostname,
-            remediation_commands,
-        ):
-            results.append(
-                DeviceBranchDeploymentResult(
+        try:
+            pre_change_expectation = build_pre_change_expectation(
+                device=inventory_device,
+                inventory=inventory,
+                current_state=current_state,
+            )
+        except PreChangeExpectationBuildError as exc:
+            devices.append(
+                DeviceDeploymentPreflight(
                     hostname=desired_device.hostname,
-                    status=BranchDeviceDeploymentStatus.SKIPPED,
+                    status=BranchDevicePreflightStatus.BLOCKED,
+                    desired_state=desired_device,
+                    inventory_device=inventory_device,
+                    current_state=current_state,
+                    validation=validation,
                     remediation_commands=remediation_commands,
-                    message="Deployment declined by operator",
+                    message=(
+                        "Deployment safety preflight failed: "
+                        f"{exc}"
+                    ),
                 )
             )
             continue
-        pre_change_expectation = build_pre_change_expectation(
-            device=inventory_device,
-            inventory=inventory,
-            current_state=current_state,
+
+        devices.append(
+            DeviceDeploymentPreflight(
+                hostname=desired_device.hostname,
+                status=BranchDevicePreflightStatus.READY,
+                desired_state=desired_device,
+                inventory_device=inventory_device,
+                current_state=current_state,
+                validation=validation,
+                remediation_commands=remediation_commands,
+                pre_change_expectation=pre_change_expectation,
+                message="Device is ready for deployment",
+            )
         )
 
+    return BranchDeploymentPreflight(
+        branch_id=branch_id,
+        devices=devices,
+    )
+
+
+def deploy_branch(
+    branch_id: str,
+    intent_path: Path,
+    inventory: DeviceInventory,
+    settings: ConnectionSettings,
+    approve: DeploymentApproval,
+) -> BranchDeploymentResult:
+    preflight = _build_branch_preflight(
+        branch_id=branch_id,
+        intent_path=intent_path,
+        inventory=inventory,
+        settings=settings,
+    )
+
+    if preflight.blocked:
+        blocked_hostnames = [
+            device.hostname
+            for device in preflight.devices
+            if (
+                device.status
+                == BranchDevicePreflightStatus.BLOCKED
+            )
+        ]
+
+        blocked_summary = ", ".join(blocked_hostnames)
+
+        results: list[
+            DeviceBranchDeploymentResult
+        ] = []
+
+        for device in preflight.devices:
+            if (
+                device.status
+                == BranchDevicePreflightStatus.COMPLIANT
+            ):
+                results.append(
+                    DeviceBranchDeploymentResult(
+                        hostname=device.hostname,
+                        status=(
+                            BranchDeviceDeploymentStatus.SKIPPED
+                        ),
+                        message=device.message,
+                    )
+                )
+                continue
+
+            if (
+                device.status
+                == BranchDevicePreflightStatus.BLOCKED
+            ):
+                results.append(
+                    DeviceBranchDeploymentResult(
+                        hostname=device.hostname,
+                        status=(
+                            BranchDeviceDeploymentStatus.BLOCKED
+                        ),
+                        remediation_commands=(
+                            device.remediation_commands
+                        ),
+                        message=device.message,
+                    )
+                )
+                continue
+
+            results.append(
+                DeviceBranchDeploymentResult(
+                    hostname=device.hostname,
+                    status=(
+                        BranchDeviceDeploymentStatus.BLOCKED
+                    ),
+                    remediation_commands=(
+                        device.remediation_commands
+                    ),
+                    message=(
+                        "Deployment blocked because branch "
+                        "preflight failed on: "
+                        f"{blocked_summary}"
+                    ),
+                )
+            )
+
+        return BranchDeploymentResult(
+            branch_id=branch_id,
+            devices=results,
+        )
+
+    approval_decisions: dict[str, bool] = {}
+
+    for device in preflight.devices:
+        if device.status != BranchDevicePreflightStatus.READY:
+            continue
+
+        approval_decisions[device.hostname] = approve(
+            device.hostname,
+            device.remediation_commands,
+        )
+
+    declined_hostnames = [
+        hostname
+        for hostname, approved
+        in approval_decisions.items()
+        if not approved
+    ]
+
+    if declined_hostnames:
+        results = []
+
+        declined_summary = ", ".join(
+            declined_hostnames
+        )
+
+        for device in preflight.devices:
+            if (
+                device.status
+                == BranchDevicePreflightStatus.COMPLIANT
+            ):
+                results.append(
+                    DeviceBranchDeploymentResult(
+                        hostname=device.hostname,
+                        status=(
+                            BranchDeviceDeploymentStatus.SKIPPED
+                        ),
+                        message=device.message,
+                    )
+                )
+                continue
+
+            if not approval_decisions[device.hostname]:
+                message = "Deployment declined by operator"
+            else:
+                message = (
+                    "Deployment not executed because operator "
+                    "approval was declined for: "
+                    f"{declined_summary}"
+                )
+
+            results.append(
+                DeviceBranchDeploymentResult(
+                    hostname=device.hostname,
+                    status=BranchDeviceDeploymentStatus.SKIPPED,
+                    remediation_commands=(
+                        device.remediation_commands
+                    ),
+                    message=message,
+                )
+            )
+
+        return BranchDeploymentResult(
+            branch_id=branch_id,
+            devices=results,
+        )
+
+    results = []
+
+    for device in preflight.devices:
+        if (
+            device.status
+            == BranchDevicePreflightStatus.COMPLIANT
+        ):
+            results.append(
+                DeviceBranchDeploymentResult(
+                    hostname=device.hostname,
+                    status=BranchDeviceDeploymentStatus.SKIPPED,
+                    message=device.message,
+                )
+            )
+            continue
+
+        if device.pre_change_expectation is None:
+            raise RuntimeError(
+                "Ready deployment preflight is missing "
+                f"pre-change expectation for {device.hostname}"
+            )
+
         deployment = deploy_inventory_device(
-            device=inventory_device,
+            device=device.inventory_device,
             settings=settings,
-            candidate_config="\n".join(remediation_commands),
-            desired_state=desired_device,
-            current_state=current_state,
-            pre_change_expectation=pre_change_expectation,
+            candidate_config="\n".join(
+                device.remediation_commands
+            ),
+            desired_state=device.desired_state,
+            current_state=device.current_state,
+            pre_change_expectation=(
+                device.pre_change_expectation
+            ),
         )
 
         results.append(
             DeviceBranchDeploymentResult(
-                hostname=desired_device.hostname,
+                hostname=device.hostname,
                 status=BranchDeviceDeploymentStatus.DEPLOYED,
-                remediation_commands=remediation_commands,
+                remediation_commands=(
+                    device.remediation_commands
+                ),
                 deployment=deployment,
                 message=deployment.message,
             )

@@ -366,8 +366,6 @@ V1 proves the core network automation architecture and controlled execution mode
 Remaining V1 work includes:
 
 ```text
-Branch-wide deployment preflight
-        ↓
 Expanded interface remediation
         ↓
 VLAN remediation
