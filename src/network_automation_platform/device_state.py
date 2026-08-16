@@ -6,6 +6,12 @@ from pydantic import BaseModel, Field
 class InterfaceState(BaseModel):
     name: str
     ipv4: IPv4Address | None = None
+    ipv4_prefixlen: int | None = Field(
+        default=None,
+        ge=0,
+        le=32,
+    )
+    description: str | None = None
     status: str
     protocol: str
     admin_enabled: bool

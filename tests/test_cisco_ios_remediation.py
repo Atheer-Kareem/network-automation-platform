@@ -105,3 +105,202 @@ def test_render_interface_remediation() -> None:
         "ip address 10.101.99.21 255.255.255.0",
         "no shutdown",
     ]
+
+def test_description_mismatch_renders_only_description_command() -> None:
+    expectation = ValidationExpectation(
+        interfaces=[
+            InterfaceExpectation(
+                name="GigabitEthernet0/1",
+                ipv4=IPv4Address("10.101.255.1"),
+                ipv4_prefixlen=30,
+                description="WAN transit",
+                admin_enabled=True,
+            )
+        ]
+    )
+
+    report = ValidationReport(
+        hostname="br01-rtr01",
+        checks=[
+            ValidationCheck(
+                name="interface:GigabitEthernet0/1",
+                status=ValidationStatus.FAIL,
+                message=(
+                    "description expected WAN transit, "
+                    "got OLD DESCRIPTION"
+                ),
+                reason="mismatch",
+                mismatched_fields=["description"],
+            )
+        ],
+    )
+
+    plan = build_device_remediation_plan(
+        expectation=expectation,
+        report=report,
+    )
+
+    commands = render_device_remediation(plan)
+
+    assert commands == [
+        "interface GigabitEthernet0/1",
+        "description WAN transit",
+    ]
+
+def test_ipv4_prefix_mismatch_renders_only_ip_command() -> None:
+    expectation = ValidationExpectation(
+        interfaces=[
+            InterfaceExpectation(
+                name="GigabitEthernet0/1",
+                ipv4=IPv4Address("10.101.255.1"),
+                ipv4_prefixlen=30,
+                description="WAN transit",
+                admin_enabled=True,
+            )
+        ]
+    )
+
+    report = ValidationReport(
+        hostname="br01-rtr01",
+        checks=[
+            ValidationCheck(
+                name="interface:GigabitEthernet0/1",
+                status=ValidationStatus.FAIL,
+                message=(
+                    "IPv4 prefix length expected 30, got 24"
+                ),
+                reason="mismatch",
+                mismatched_fields=["ipv4_prefixlen"],
+            )
+        ],
+    )
+
+    plan = build_device_remediation_plan(
+        expectation=expectation,
+        report=report,
+    )
+
+    commands = render_device_remediation(plan)
+
+    assert commands == [
+        "interface GigabitEthernet0/1",
+        "ip address 10.101.255.1 255.255.255.252",
+    ]
+
+def test_admin_state_mismatch_renders_only_admin_command() -> None:
+    expectation = ValidationExpectation(
+        interfaces=[
+            InterfaceExpectation(
+                name="GigabitEthernet0/1",
+                ipv4=IPv4Address("10.101.255.1"),
+                ipv4_prefixlen=30,
+                description="WAN transit",
+                admin_enabled=True,
+            )
+        ]
+    )
+
+    report = ValidationReport(
+        hostname="br01-rtr01",
+        checks=[
+            ValidationCheck(
+                name="interface:GigabitEthernet0/1",
+                status=ValidationStatus.FAIL,
+                message=(
+                    "admin enabled expected True, got False"
+                ),
+                reason="mismatch",
+                mismatched_fields=["admin_enabled"],
+            )
+        ],
+    )
+
+    plan = build_device_remediation_plan(
+        expectation=expectation,
+        report=report,
+    )
+
+    commands = render_device_remediation(plan)
+
+    assert commands == [
+        "interface GigabitEthernet0/1",
+        "no shutdown",
+    ]
+
+def test_ipv4_address_mismatch_renders_complete_ip_command() -> None:
+    expectation = ValidationExpectation(
+        interfaces=[
+            InterfaceExpectation(
+                name="GigabitEthernet0/1",
+                ipv4=IPv4Address("10.101.255.1"),
+                ipv4_prefixlen=30,
+                description="WAN transit",
+                admin_enabled=True,
+            )
+        ]
+    )
+
+    report = ValidationReport(
+        hostname="br01-rtr01",
+        checks=[
+            ValidationCheck(
+                name="interface:GigabitEthernet0/1",
+                status=ValidationStatus.FAIL,
+                message=(
+                    "IPv4 expected 10.101.255.1, "
+                    "got 10.101.255.2"
+                ),
+                reason="mismatch",
+                mismatched_fields=["ipv4"],
+            )
+        ],
+    )
+
+    plan = build_device_remediation_plan(
+        expectation=expectation,
+        report=report,
+    )
+
+    commands = render_device_remediation(plan)
+
+    assert commands == [
+        "interface GigabitEthernet0/1",
+        "ip address 10.101.255.1 255.255.255.252",
+    ]
+
+def test_admin_disable_mismatch_renders_only_shutdown_command() -> None:
+    expectation = ValidationExpectation(
+        interfaces=[
+            InterfaceExpectation(
+                name="GigabitEthernet0/1",
+                admin_enabled=False,
+            )
+        ]
+    )
+
+    report = ValidationReport(
+        hostname="br01-rtr01",
+        checks=[
+            ValidationCheck(
+                name="interface:GigabitEthernet0/1",
+                status=ValidationStatus.FAIL,
+                message=(
+                    "admin enabled expected False, got True"
+                ),
+                reason="mismatch",
+                mismatched_fields=["admin_enabled"],
+            )
+        ],
+    )
+
+    plan = build_device_remediation_plan(
+        expectation=expectation,
+        report=report,
+    )
+
+    commands = render_device_remediation(plan)
+
+    assert commands == [
+        "interface GigabitEthernet0/1",
+        "shutdown",
+    ]

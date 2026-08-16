@@ -260,7 +260,17 @@ POST_VALIDATION_FAILED
 SUCCEEDED
 ```
 
-V1 currently supports targeted remediation for a missing interface or SVI.
+V1 currently supports targeted interface remediation for:
+
+- a missing managed interface or SVI;
+- interface description mismatch;
+- IPv4 address mismatch;
+- IPv4 prefix-length mismatch; and
+- administrative-state mismatch.
+
+IPv4 address and prefix-length drift are remediated as a single Cisco IOS configuration unit by applying the complete desired `ip address <address> <mask>` command.
+
+Operational interface status and protocol mismatches may be detected when explicitly modelled by validation, but they are not eligible for automatic remediation.
 
 Additional remediation types are introduced only after their validation semantics, structured remediation, vendor-specific rendering, safety behavior, and tests have been implemented.
 
@@ -366,8 +376,6 @@ V1 proves the core network automation architecture and controlled execution mode
 Remaining V1 work includes:
 
 ```text
-Expanded interface remediation
-        ↓
 VLAN remediation
         ↓
 Switchport remediation
@@ -540,20 +548,25 @@ See [ADR-0004: Keep GitHub Canonical and Use GitLab for CI/CD Automation](docs/a
 
 ## Current Remediation Scope
 
-The first supported targeted remediation type is:
+The currently supported targeted interface remediation types are:
 
 ```text
-Missing interface / SVI
+Missing managed interface / SVI
+Description mismatch
+IPv4 address mismatch
+IPv4 prefix-length mismatch
+Administrative-state mismatch
 ```
+
+For IPv4 address or prefix-length drift, the platform renders the complete desired Cisco IOS `ip address <address> <mask>` configuration unit.
+
+Operational interface status and protocol mismatches are not automatically remediated.
 
 The remediation architecture is designed so additional types can be introduced without moving vendor-specific command generation into the core planning layer.
 
-Planned V1 additions include:
+Remaining planned V1 additions include:
 
 ```text
-Interface description mismatch
-Interface IP / prefix mismatch
-Administrative-state mismatch
 Missing VLAN
 VLAN name mismatch
 Switchport mode mismatch

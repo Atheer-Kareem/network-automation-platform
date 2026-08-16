@@ -51,6 +51,7 @@ def test_run_post_change_validation_passes() -> None:
             InterfaceState(
                 name="GigabitEthernet0/1",
                 ipv4=IPv4Address("10.101.255.1"),
+                ipv4_prefixlen=30,
                 status="up",
                 protocol="up",
                 admin_enabled=True,
@@ -73,7 +74,6 @@ def test_run_post_change_validation_passes() -> None:
     assert result.phase == ValidationPhase.POST_CHANGE
     assert result.passed is True
     assert result.report.passed is True
-
 
 def test_run_post_change_validation_fails() -> None:
     desired = DeviceDesiredState(

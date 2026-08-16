@@ -171,7 +171,7 @@ Current V1 capabilities include:
 - full post-change desired-state validation; and
 - explicit deployment outcomes.
 
-The first supported targeted remediation type is a missing interface or SVI.
+Targeted interface remediation now supports missing managed interfaces/SVIs, description mismatch, IPv4 address or prefix-length mismatch, and administrative-state mismatch.
 
 ### Remaining V1 Work
 
@@ -199,11 +199,11 @@ This does not introduce multi-device transaction semantics.
 
 It prevents avoidable partial execution where a later device contains known unsupported or unsafe drift.
 
-#### 2. Interface remediation expansion
+#### 2. Interface remediation expansion [Completed]
 
-Extend targeted interface remediation beyond missing interfaces.
+Targeted interface remediation now covers description, IPv4 address or prefix-length, and administrative-state mismatches in addition to missing interfaces.
 
-Initial candidates include:
+Completed capabilities include:
 
 - description mismatch;
 - IPv4 address or prefix mismatch; and
