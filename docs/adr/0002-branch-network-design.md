@@ -1,6 +1,3 @@
-Then `docs/adr/0002-branch-network-design.md`:
-
-```md
 # ADR-0002: Use a Minimal Standard Branch Topology for V1
 
 ## Status
@@ -61,4 +58,3 @@ while keeping the first implementation small enough to test repeatedly.
 ## Future Review
 
 The branch topology should be expanded after the initial deployment workflow is stable and testable.
-```

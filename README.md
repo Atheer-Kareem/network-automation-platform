@@ -8,9 +8,43 @@ The project is designed around a clear separation between network intent, desire
 
 V1 is under active development.
 
-The platform currently supports a representative Cisco branch environment with working end-to-end validation, planning, targeted remediation, and operator-approved controlled deployment against live devices.
+The platform has reached a major V1 milestone: the core end-to-end automation lifecycle has been proven against a representative Cisco branch environment.
 
-The controlled deployment workflow has been validated in the lab from real drift detection through targeted remediation, pre-change safety checks, configuration deployment, fresh state collection, and post-change validation.
+The current implementation supports:
+
+```text
+intent
+  ↓
+desired state
+  ↓
+live state collection
+  ↓
+validation
+  ↓
+drift detection
+  ↓
+targeted remediation
+  ↓
+operator approval
+  ↓
+pre-change safety validation
+  ↓
+controlled deployment
+  ↓
+fresh state collection
+  ↓
+post-change validation
+  ↓
+deployment outcome
+```
+
+The controlled deployment workflow has been validated against real lab drift from detection through targeted repair and final desired-state compliance.
+
+V1 is not yet complete.
+
+Remaining V1 work focuses on expanding safe remediation, strengthening branch-wide preflight, validating routing and OSPF outcomes, improving deployment evidence, and systematically exercising failure paths.
+
+Future development is tracked through a defined V1 → V1.5 → V2 roadmap.
 
 ## Current Capabilities
 
@@ -104,7 +138,9 @@ uv run pytest
 ```text
 network-automation-platform/
 ├── docs/
-│   └── architecture/
+│   ├── adr/
+│   ├── architecture/
+│   └── roadmap/
 ├── intent/
 ├── inventory/
 │   └── ssh/
@@ -121,12 +157,14 @@ Key areas:
 - `intent/` — desired branch intent
 - `inventory/` — device inventory and lab environment configuration
 - `inventory/ssh/` — generated SSH configuration and local SSH runtime state
-- `docs/architecture/` — architecture, network model, and engineering decisions
-- `tests/` — unit, service, and orchestration tests
+- `docs/architecture/` — architecture, network model, business context, and operational design
+- `docs/adr/` — architectural decision records
+- `docs/roadmap/` — platform evolution and competency coverage
+- `tests/` — unit, service, orchestration, and safety tests
 
 ## Architecture
 
-The V1 workflow follows this lifecycle:
+The current V1 workflow follows this lifecycle:
 
 ```text
 Intent
@@ -224,7 +262,7 @@ SUCCEEDED
 
 V1 currently supports targeted remediation for a missing interface or SVI.
 
-Additional remediation types can be added independently as the remediation model expands.
+Additional remediation types are introduced only after their validation semantics, structured remediation, vendor-specific rendering, safety behavior, and tests have been implemented.
 
 ## Representative Deployment Validation
 
@@ -252,6 +290,8 @@ The workflow then:
 7. confirmed full desired-state compliance.
 
 The already-compliant branch router was skipped rather than unnecessarily modified.
+
+This provides the first complete V1 proof that the platform can detect, plan, approve, apply, and verify a narrowly scoped network change without replacing the complete device configuration.
 
 ## Lab Configuration
 
@@ -292,15 +332,6 @@ This file represents local runtime trust state rather than desired configuration
 
 When device addresses or device identities change, local SSH trust state may need to be refreshed.
 
-## Documentation
-
-Start with:
-
-- [Architecture Overview](docs/architecture/v1-overview.md)
-- [Network Model](docs/architecture/network-model.md)
-- [Branch Standard](docs/architecture/branch-standard.md)
-- [SSH Runtime Files](inventory/ssh/README.md)
-
 ## Engineering Principles
 
 The project is being developed with production-oriented practices from the beginning:
@@ -310,48 +341,204 @@ The project is being developed with production-oriented practices from the begin
 - Vendor-specific behavior behind defined boundaries
 - Intent separated from implementation
 - Safe automation
+- Unsupported automation fails closed
 - Targeted changes instead of unnecessary full-configuration writes
 - Validation before and after deployment
 - Fresh post-change state collection
 - Explicit operator approval at the write boundary
 - Strict device identity and SSH host-key verification
+- Network outcomes over command success
 - Testable components
 - Environment-independent application logic
 - Feature branches and pull requests
 - Automated linting and tests
 - Documentation maintained alongside implementation
+- Engineering value before technology collection
 
-## V1 Scope
+## Roadmap
 
-The current V1 scope focuses on:
+The platform roadmap is divided into three capability stages.
 
-```text
-Cisco IOS / IOS XE
-Synchronous single-device execution
-Branch-level validation
-Branch-level planning
-Targeted remediation planning
-Operator-approved controlled deployment
-Interface state
-Route state
-VLAN state
-Switchport state
-Pre-change safety validation
-Post-change validation
-Representative branch topology
-```
+### V1 — Safe Automation Platform Foundation
 
-V1 intentionally does not yet include:
+V1 proves the core network automation architecture and controlled execution model.
+
+Remaining V1 work includes:
 
 ```text
-Automatic rollback
-Automatic configuration persistence
-Multi-device transactional deployment
-Full multi-vendor support
-NETCONF / RESTCONF workflows
-Controller integration
-Automatic remediation of every drift type
+Branch-wide deployment preflight
+        ↓
+Expanded interface remediation
+        ↓
+VLAN remediation
+        ↓
+Switchport remediation
+        ↓
+Routing and OSPF operational validation
+        ↓
+Deployment evidence and reporting
+        ↓
+Failure-path hardening
+        ↓
+Final CML acceptance
+        ↓
+V1 release
 ```
+
+V1 is complete when supported automation works across multiple drift categories, unsafe or unsupported changes fail closed, important operational outcomes are validated, major failure paths are proven, and the representative acceptance scenarios pass.
+
+### V1.5 — Model-Driven and Device-Automation Bridge
+
+V1.5 expands the project beyond CLI-centric automation into standards-based and commonly used enterprise automation mechanisms.
+
+Primary areas include:
+
+```text
+YANG
+NETCONF
+RESTCONF
+ncclient
+Netmiko
+Ansible
+Jinja2
+pyATS
+IOS XE Day-0 / on-box automation
+model-driven telemetry foundations
+```
+
+V1.5 does not replace the V1 architecture.
+
+Instead, it introduces additional device-management and automation mechanisms behind appropriate boundaries and through companion labs where integration into the flagship platform would not provide architectural value.
+
+### V2 — NetDevOps Automation Ecosystem
+
+V2 expands from device automation into broader automation-system engineering.
+
+Primary areas include:
+
+```text
+Terraform
+GitLab CI/CD
+programmable CML digital twins
+Docker / Docker Compose
+stronger source-of-truth integration
+telemetry and operational evidence
+logging and webhooks
+automation security and TLS
+enterprise controller automation
+AI / MCP integration
+```
+
+The intended V2 direction is an end-to-end delivery system:
+
+```text
+source change
+    ↓
+automated quality gates
+    ↓
+digital-twin validation
+    ↓
+change planning
+    ↓
+approval
+    ↓
+controlled deployment
+    ↓
+post-change validation
+    ↓
+published evidence
+```
+
+The detailed sequence, completion criteria, and version boundaries are maintained in the [Platform Roadmap](docs/roadmap/platform-roadmap.md).
+
+## Certification and Competency Alignment
+
+The engineering roadmap is intentionally compatible with the skills required for modern enterprise network automation, including the CCNP Automation technology domains.
+
+Certification requirements are used as an external competency framework, not as an architecture specification.
+
+The flagship platform remains engineering-led.
+
+A technology is added to the platform only when it provides justified architectural or operational value.
+
+Technologies that are important for practical breadth but do not belong naturally in the flagship architecture can be implemented through focused companion labs.
+
+Coverage is tracked against a mastery cycle:
+
+```text
+UNDERSTAND
+    ↓
+BUILD
+    ↓
+BREAK
+    ↓
+TROUBLESHOOT
+    ↓
+VALIDATE
+    ↓
+DOCUMENT
+    ↓
+EXPLAIN
+```
+
+Specific technologies are practiced directly rather than being considered complete merely because a similar technology is already used.
+
+For example:
+
+```text
+Scrapli experience
+    ≠
+Netmiko completed
+
+custom validation
+    ≠
+pyATS completed
+
+GitHub workflow
+    ≠
+GitLab CI/CD completed
+
+YAML experience
+    ≠
+YANG-derived automation completed
+```
+
+The detailed mapping is maintained in [CCNP Automation Coverage](docs/roadmap/ccnp-automation-coverage.md).
+
+## Repository and CI/CD Strategy
+
+GitHub remains the canonical public repository for the Network Automation Platform.
+
+It continues to provide:
+
+- source history;
+- feature branches;
+- pull requests;
+- code review;
+- project documentation; and
+- public portfolio evidence.
+
+GitLab will be introduced during V2 as an additional CI/CD execution environment rather than replacing GitHub.
+
+The intended boundary is:
+
+```text
+GitHub
+canonical source repository
+        ↓
+GitLab
+CI/CD orchestration
+        ↓
+GitLab Runner
+        ↓
+Network Automation Platform
+        ↓
+CML / network targets
+```
+
+CI/CD must orchestrate platform-owned validation and deployment workflows rather than bypassing them with unrelated device-write logic.
+
+See [ADR-0004: Keep GitHub Canonical and Use GitLab for CI/CD Automation](docs/adr/0004-github-canonical-gitlab-cicd.md).
 
 ## Current Remediation Scope
 
@@ -361,21 +548,23 @@ The first supported targeted remediation type is:
 Missing interface / SVI
 ```
 
-The remediation architecture is designed so that additional types can be introduced without moving vendor-specific command generation into the core planning layer.
+The remediation architecture is designed so additional types can be introduced without moving vendor-specific command generation into the core planning layer.
 
-Potential later additions include:
+Planned V1 additions include:
 
 ```text
-Interface IP mismatch
-Administrative state mismatch
+Interface description mismatch
+Interface IP / prefix mismatch
+Administrative-state mismatch
 Missing VLAN
 VLAN name mismatch
 Switchport mode mismatch
 Access VLAN mismatch
+Voice VLAN mismatch
 Trunk allowed-VLAN mismatch
 ```
 
-These are not considered supported deployment actions until explicitly implemented and tested.
+These are not considered supported deployment actions until explicitly implemented, tested, and validated against the representative environment.
 
 ## V1 Safety Boundaries
 
@@ -393,3 +582,26 @@ No direct CLI-to-device write path
 All device writes continue through the deployment service and vendor-specific deployment executor.
 
 The CLI remains an operator interface rather than an independent execution path.
+
+V1 development strengthens these boundaries before broader automation mechanisms are introduced.
+
+## Documentation
+
+Start with:
+
+- [Company Context](docs/architecture/company-context.md)
+- [Architecture Overview](docs/architecture/v1-overview.md)
+- [Network Model](docs/architecture/network-model.md)
+- [Branch Standard](docs/architecture/branch-standard.md)
+- [Platform Roadmap](docs/roadmap/platform-roadmap.md)
+- [CCNP Automation Coverage](docs/roadmap/ccnp-automation-coverage.md)
+- [SSH Runtime Files](inventory/ssh/README.md)
+
+Architectural decisions are recorded under [`docs/adr/`](docs/adr/).
+
+Current ADRs include:
+
+- [ADR-0001: Start with a Modular Single Repository](docs/adr/0001-platform-scope.md)
+- [ADR-0002: Use a Minimal Standard Branch Topology for V1](docs/adr/0002-branch-network-design.md)
+- [ADR-0003: Use Scrapli for V1 Network Device CLI Access](docs/adr/0003-network-device-cli-library.md)
+- [ADR-0004: Keep GitHub Canonical and Use GitLab for CI/CD Automation](docs/adr/0004-github-canonical-gitlab-cicd.md)

@@ -60,7 +60,7 @@ Standard branch subnets are derived consistently:
 
 This convention is intentionally simple for V1.
 
-The addressing model must not be hard-coded into platform business logic. A future source-of-truth implementation, such as NetBox IPAM, will replace deterministic local allocation with centrally managed prefix allocation.
+The addressing model must not be hard-coded into platform business logic. A future source-of-truth implementation, such as an IPAM or network source-of-truth platform, may replace deterministic local allocation with centrally managed prefix allocation when that provides sufficient architectural and operational value.
 
 ## Standard VLAN Roles
 
@@ -124,9 +124,11 @@ The representative V1 branch uses OSPF for dynamic routing toward upstream infra
 
 The branch router advertises the branch networks and forms an adjacency across the WAN transit network.
 
-OSPF is part of the representative network design, but V1 desired-state validation does not yet model expected OSPF peer identity or adjacency state.
+OSPF is part of the representative network design, but current V1 desired-state validation does not yet model expected OSPF peer identity or adjacency state.
 
 OSPF neighbor state may be collected for operational visibility where the device inventory enables that capability.
+
+Operational OSPF adjacency validation is part of the remaining V1 target scope.
 
 ## Management Plane Separation
 
@@ -136,6 +138,6 @@ The branch management VLAN is part of branch intent and carries in-band manageme
 
 The out-of-band management network is an execution-environment concern used to provide a stable automation control path to lab devices.
 
-Out-of-band addressing must therefore not be derived from branch intent or rendered into branch candidate configuration.
+Out-of-band addressing must therefore not be derived from branch intent or rendered into branch desired configuration or remediation.
 
 This separation prevents branch configuration changes from unnecessarily modifying the management path used by the automation platform.
