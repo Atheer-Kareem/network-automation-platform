@@ -33,6 +33,7 @@ def test_validate_device_against_desired_state() -> None:
             InterfaceState(
                 name="GigabitEthernet0/1",
                 ipv4=IPv4Address("10.101.255.1"),
+                ipv4_prefixlen=30,
                 status="up",
                 protocol="up",
                 admin_enabled=True,

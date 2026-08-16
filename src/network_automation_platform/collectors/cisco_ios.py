@@ -46,6 +46,46 @@ def parse_ip_interface_brief(
 
     return interfaces
 
+def enrich_interface_state(
+    interfaces: list[InterfaceState],
+    parsed_output: list[dict[str, Any]],
+) -> list[InterfaceState]:
+    details_by_name = {
+        str(detail["interface"]): detail
+        for detail in parsed_output
+    }
+
+    enriched_interfaces: list[InterfaceState] = []
+
+    for interface in interfaces:
+        detail = details_by_name.get(interface.name)
+
+        if detail is None:
+            enriched_interfaces.append(interface)
+            continue
+
+        description = str(
+            detail.get("description") or ""
+        ).strip()
+
+        prefix_length = detail.get("prefix_length")
+        ipv4_prefixlen = (
+            int(prefix_length)
+            if prefix_length not in (None, "")
+            else None
+        )
+
+        enriched_interfaces.append(
+            interface.model_copy(
+                update={
+                    "description": description or None,
+                    "ipv4_prefixlen": ipv4_prefixlen,
+                }
+            )
+        )
+
+    return enriched_interfaces
+
 def collect_interface_state(
     device: InventoryDevice,
     settings: ConnectionSettings,
@@ -158,6 +198,15 @@ def collect_device_state(
                     device,
                     "show ip interface brief",
                 )
+            )
+
+            interfaces = enrich_interface_state(
+                interfaces,
+                send_and_parse(
+                    connection,
+                    device,
+                    "show interfaces",
+                ),
             )
 
             routes = []

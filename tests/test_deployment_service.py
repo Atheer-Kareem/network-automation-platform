@@ -43,6 +43,7 @@ def build_current_state() -> DeviceState:
             InterfaceState(
                 name="FastEthernet1/0",
                 ipv4=TEST_CORE_IP,
+                ipv4_prefixlen=TEST_OOB_NETWORK.prefixlen,
                 status="up",
                 protocol="up",
                 admin_enabled=True,
@@ -100,6 +101,7 @@ def build_post_change_state() -> DeviceState:
             InterfaceState(
                 name="FastEthernet1/0",
                 ipv4=IPv4Address("10.101.255.1"),
+                ipv4_prefixlen=30,
                 status="up",
                 protocol="up",
                 admin_enabled=True,

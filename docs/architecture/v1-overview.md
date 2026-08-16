@@ -176,11 +176,21 @@ targeted CLI commands
 
 Validation failures include machine-readable metadata where required for remediation decisions.
 
-The first supported remediation type is:
+The currently supported targeted interface remediation types are:
 
 ```text
-missing interface / SVI
+missing managed interface / SVI
+description mismatch
+IPv4 address mismatch
+IPv4 prefix-length mismatch
+administrative-state mismatch
 ```
+
+Interface mismatches carry machine-readable `mismatched_fields` metadata so remediation policy does not depend on parsing human-readable validation messages.
+
+IPv4 address and prefix-length mismatches are treated as one Cisco IOS configuration unit and therefore render the complete desired address and subnet mask.
+
+Operational status and protocol mismatches are intentionally excluded from automatic remediation.
 
 The remediation planner resolves the failed validation target against the already platform-resolved validation expectation rather than repeating logical-to-physical interface mapping.
 
@@ -436,7 +446,7 @@ The target V1 scope includes:
 - generated SSH configuration;
 - strict SSH host-key verification;
 - branch-wide deployment preflight before the first write;
-- targeted interface remediation beyond missing interfaces;
+- targeted interface remediation for supported configuration mismatches;
 - targeted VLAN remediation;
 - targeted switchport remediation;
 - routing and OSPF operational validation;
@@ -457,7 +467,7 @@ The detailed implementation sequence and completion criteria are maintained in t
 Controlled deployment currently has the following limitations:
 
 - Cisco IOS / IOS XE CLI-oriented execution path;
-- targeted remediation currently supports missing interface / SVI drift only;
+- targeted interface remediation is limited to missing interfaces/SVIs, description drift, IPv4 address/prefix drift, and administrative-state drift;
 - single-device synchronous execution remains the write-boundary model;
 - no automatic rollback;
 - no automatic persistence of running configuration to startup configuration;
@@ -465,7 +475,7 @@ Controlled deployment currently has the following limitations:
 - multi-device transaction semantics are not implemented;
 - unsupported drift blocks deployment rather than being partially remediated;
 - OSPF neighbor state is collected but OSPF adjacency expectations are not yet modelled in desired-state validation;
-- additional interface, VLAN, and switchport remediation types are not yet enabled for deployment;
+- operational interface status/protocol drift, VLAN drift, and switchport drift are not yet enabled for automatic remediation;
 - structured deployment audit/report artifacts are not yet complete; and
 - systematic failure-path acceptance coverage is still being expanded.
 

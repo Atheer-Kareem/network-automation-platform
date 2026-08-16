@@ -81,6 +81,7 @@ class ValidationCheck(BaseModel):
     status: ValidationStatus
     message: str
     reason: ValidationReason | None = None
+    mismatched_fields: list[str] = Field(default_factory=list)
 
 
 class ValidationReport(BaseModel):
@@ -144,19 +145,48 @@ def validate_device_state(
             continue
 
         failures: list[str] = []
+        mismatched_fields: list[str] = []
 
-        if expected.ipv4 is not None and actual.ipv4 != expected.ipv4:
+        if (
+            expected.ipv4 is not None
+            and actual.ipv4 != expected.ipv4
+        ):
             failures.append(
                 f"IPv4 expected {expected.ipv4}, got {actual.ipv4}"
             )
+            mismatched_fields.append("ipv4")
+
+        if (
+            expected.ipv4_prefixlen is not None
+            and actual.ipv4_prefixlen
+            != expected.ipv4_prefixlen
+        ):
+            failures.append(
+                "IPv4 prefix length expected "
+                f"{expected.ipv4_prefixlen}, "
+                f"got {actual.ipv4_prefixlen}"
+            )
+            mismatched_fields.append("ipv4_prefixlen")
+
+        if (
+            expected.description is not None
+            and actual.description != expected.description
+        ):
+            failures.append(
+                f"description expected {expected.description}, "
+                f"got {actual.description}"
+            )
+            mismatched_fields.append("description")
 
         if (
             expected.status is not None
             and actual.status != expected.status
         ):
             failures.append(
-                f"status expected {expected.status}, got {actual.status}"
+                f"status expected {expected.status}, "
+                f"got {actual.status}"
             )
+            mismatched_fields.append("status")
 
         if (
             expected.protocol is not None
@@ -166,15 +196,19 @@ def validate_device_state(
                 f"protocol expected {expected.protocol}, "
                 f"got {actual.protocol}"
             )
+            mismatched_fields.append("protocol")
 
         if (
             expected.admin_enabled is not None
-            and actual.admin_enabled != expected.admin_enabled
+            and actual.admin_enabled
+            != expected.admin_enabled
         ):
             failures.append(
-                f"admin enabled expected {expected.admin_enabled}, "
+                "admin enabled expected "
+                f"{expected.admin_enabled}, "
                 f"got {actual.admin_enabled}"
             )
+            mismatched_fields.append("admin_enabled")
 
         if failures:
             checks.append(
@@ -182,6 +216,8 @@ def validate_device_state(
                     name=f"interface:{expected.name}",
                     status=ValidationStatus.FAIL,
                     message="; ".join(failures),
+                    reason="mismatch",
+                    mismatched_fields=mismatched_fields,
                 )
             )
         else:
@@ -189,7 +225,10 @@ def validate_device_state(
                 ValidationCheck(
                     name=f"interface:{expected.name}",
                     status=ValidationStatus.PASS,
-                    message=f"Interface {expected.name} matches expectation",
+                    message=(
+                        f"Interface {expected.name} "
+                        "matches expectation"
+                    ),
                 )
             )
 

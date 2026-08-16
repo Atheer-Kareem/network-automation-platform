@@ -15,6 +15,14 @@ from network_automation_platform.validation import (
 class RemediationPlanningError(ValueError):
     pass
 
+CONFIGURABLE_INTERFACE_MISMATCH_FIELDS = frozenset(
+    {
+        "description",
+        "ipv4",
+        "ipv4_prefixlen",
+        "admin_enabled",
+    }
+)
 
 def _build_interface_remediation(
     expected: InterfaceExpectation,
@@ -38,6 +46,47 @@ def _build_interface_remediation(
         enabled=expected.admin_enabled,
     )
 
+def _build_interface_mismatch_remediation(
+    expected: InterfaceExpectation,
+    mismatched_fields: list[str],
+) -> InterfaceRemediation:
+    fields = set(mismatched_fields)
+
+    description: str | None = None
+    ipv4: str | None = None
+    enabled: bool | None = None
+
+    if "description" in fields:
+        description = expected.description
+
+    if {"ipv4", "ipv4_prefixlen"} & fields:
+        if expected.ipv4 is None:
+            raise RemediationPlanningError(
+                f"Cannot remediate interface {expected.name}: "
+                "desired IPv4 address is missing"
+            )
+
+        if expected.ipv4_prefixlen is None:
+            raise RemediationPlanningError(
+                f"Cannot remediate interface {expected.name}: "
+                "IPv4 prefix length is missing"
+            )
+
+        ipv4 = (
+            f"{expected.ipv4}/"
+            f"{expected.ipv4_prefixlen}"
+        )
+
+    if "admin_enabled" in fields:
+        enabled = expected.admin_enabled
+
+    return InterfaceRemediation(
+        kind="interface",
+        interface_name=expected.name,
+        description=description,
+        ipv4=ipv4,
+        enabled=enabled,
+    )
 
 def build_device_remediation_plan(
     expectation: ValidationExpectation,
@@ -72,14 +121,26 @@ def build_device_remediation_plan(
                 "in the validation expectation"
             )
 
+        if check.reason == "missing":
+            remediation = _build_interface_remediation(
+                expected
+            )
+            description = (
+                f"Create/configure interface {interface_name}"
+            )
+        else:
+            remediation = _build_interface_mismatch_remediation(
+                expected,
+                check.mismatched_fields,
+            )
+            description = (
+                f"Remediate interface {interface_name}"
+            )
+
         actions.append(
             RemediationAction(
-                description=(
-                    f"Create/configure interface {interface_name}"
-                ),
-                remediation=_build_interface_remediation(
-                    expected
-                ),
+                description=description,
+                remediation=remediation,
             )
         )
 
@@ -91,8 +152,21 @@ def build_device_remediation_plan(
 def is_supported_remediation_check(
     check: ValidationCheck,
 ) -> bool:
-    return (
-        check.status == ValidationStatus.FAIL
-        and check.name.startswith("interface:")
-        and check.reason == "missing"
+    if (
+        check.status != ValidationStatus.FAIL
+        or not check.name.startswith("interface:")
+    ):
+        return False
+
+    if check.reason == "missing":
+        return True
+
+    if check.reason != "mismatch":
+        return False
+
+    if not check.mismatched_fields:
+        return False
+
+    return set(check.mismatched_fields).issubset(
+        CONFIGURABLE_INTERFACE_MISMATCH_FIELDS
     )
