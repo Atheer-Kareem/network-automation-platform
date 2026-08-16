@@ -175,7 +175,7 @@ The first supported targeted remediation type is a missing interface or SVI.
 
 ### Remaining V1 Work
 
-#### 1. Branch-wide deployment preflight
+#### 1. Branch-wide deployment preflight [Completed]
 
 Perform complete branch analysis before the first device write.
 
