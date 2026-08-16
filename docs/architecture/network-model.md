@@ -27,7 +27,7 @@ Potential execution environments include:
 - physical lab equipment
 - cloud-hosted virtual appliances
 
-GNS3 is not considered a representative target for the current V1 lab because the required IOSv/IOSvL2 and virtualization characteristics are not a good fit for the current Apple Silicon development environment.
+GNS3 is not used as the representative V1 environment because the required IOSv/IOSvL2 and virtualization characteristics are not a good fit for the current Apple Silicon development environment.
 
 The current representative lab is implemented in Cisco Modeling Labs.
 

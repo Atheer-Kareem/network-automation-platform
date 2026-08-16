@@ -26,6 +26,20 @@ Components will maintain clear internal boundaries so they can be extracted into
 
 Repository boundaries will follow domain ownership and lifecycle boundaries rather than programming language or tool choice.
 
+## Scope Clarification
+
+This decision applies to components that form part of the Network Automation Platform itself.
+
+A separate companion repository may be used for technology comparison, controller-specific exercises, certification-aligned labs, or other practical work that does not naturally belong to the flagship platform architecture.
+
+For example:
+
+network-automation-platform = production-style platform implementation
+
+enterprise-network-automation-lab = broader automation practice and technology-specific labs Creating such a companion repository does not represent decomposition of the platform into multiple repositories.
+
+Platform components should still remain within the modular single repository unless independent ownership, lifecycle, security, or deployment requirements justify extraction.
+
 ## Consequences
 
 ### Positive

@@ -409,66 +409,136 @@ SSH host keys remain separate local runtime trust state and are not treated as d
 
 This separation was validated by changing the representative lab OOB network without requiring application-code changes or coupling ordinary unit tests to the live environment.
 
-## V1 Scope
+## V1 Target Scope
 
-V1 includes:
+V1 establishes the safe automation platform foundation.
 
-- Representative branch network model
-- Structured network intent
-- Device inventory
-- Inventory-driven environment configuration
-- Read-only capability-aware state collection
-- Full desired configuration generation
-- Branch-level validation
-- Branch-level planning
-- Structured drift classification
-- Targeted remediation planning
-- Cisco IOS remediation rendering
-- Explicit operator approval
-- Pre-change safety validation
-- Controlled deployment
-- Post-change fresh state collection
-- Full post-change validation
-- Explicit deployment result modelling
-- Cisco IOS deployment execution
-- Generated SSH configuration
-- Strict SSH host-key verification
-- Automated testing
-- CI quality gates
-- Architecture and operational documentation
+The target V1 scope includes:
+
+- representative branch network model;
+- structured network intent;
+- device inventory;
+- inventory-driven environment configuration;
+- read-only capability-aware state collection;
+- complete desired configuration generation;
+- branch-level validation;
+- branch-level planning;
+- structured drift classification;
+- targeted remediation planning;
+- Cisco IOS remediation rendering;
+- explicit operator approval;
+- pre-change safety validation;
+- controlled deployment;
+- fresh post-change state collection;
+- full post-change validation;
+- explicit deployment result modelling;
+- Cisco IOS deployment execution;
+- generated SSH configuration;
+- strict SSH host-key verification;
+- branch-wide deployment preflight before the first write;
+- targeted interface remediation beyond missing interfaces;
+- targeted VLAN remediation;
+- targeted switchport remediation;
+- routing and OSPF operational validation;
+- structured deployment evidence and reporting;
+- systematic failure-path validation;
+- representative CML acceptance testing;
+- automated testing;
+- CI quality gates; and
+- architecture and operational documentation.
+
+Some of these capabilities remain under development.
+
+The detailed implementation sequence and completion criteria are maintained in the
+[Platform Roadmap](../roadmap/platform-roadmap.md).
 
 ## Current V1 Deployment Limitations
 
 Controlled deployment currently has the following limitations:
 
-- Cisco IOS / IOS XE CLI-oriented execution path
-- Targeted remediation currently supports missing interface / SVI drift only
-- Single-device synchronous execution at the write boundary
-- No automatic rollback
-- No automatic persistence of running configuration to startup configuration
-- Remediation is executed as CLI command sequences
-- Multi-device transaction semantics are not implemented
-- Unsupported drift blocks deployment rather than being partially remediated
-- OSPF neighbor state is collected but OSPF adjacency expectations are not yet modelled in desired-state validation
-- Additional interface, VLAN, and switchport remediation types are not yet enabled for deployment
+- Cisco IOS / IOS XE CLI-oriented execution path;
+- targeted remediation currently supports missing interface / SVI drift only;
+- branch-wide deployment preflight before the first write is not yet implemented;
+- single-device synchronous execution remains the write-boundary model;
+- no automatic rollback;
+- no automatic persistence of running configuration to startup configuration;
+- remediation is executed as CLI command sequences;
+- multi-device transaction semantics are not implemented;
+- unsupported drift blocks deployment rather than being partially remediated;
+- OSPF neighbor state is collected but OSPF adjacency expectations are not yet modelled in desired-state validation;
+- additional interface, VLAN, and switchport remediation types are not yet enabled for deployment;
+- structured deployment audit/report artifacts are not yet complete; and
+- systematic failure-path acceptance coverage is still being expanded.
 
-These constraints are intentional for V1 and keep the execution model small enough to validate safely before expanding platform scope.
+These constraints are intentional at the current stage of V1.
+
+The remaining V1 work focuses on expanding supported remediation carefully, strengthening branch-wide safety, validating operational network outcomes, improving deployment evidence, and proving important failure paths before declaring V1 complete.
 
 ## Out of Scope for V1
 
-The following are planned extensions rather than V1 requirements:
+The following capabilities are deliberately deferred beyond the V1 foundation:
 
-- AI-assisted remediation
-- Closed-loop autonomous remediation
-- Automatic rollback
-- Automatic configuration persistence
-- Multi-device transactional deployment
-- Full observability platform
-- Kubernetes
-- Complex microservice architecture
-- Multiple CI platforms
-- Large-scale cloud networking
-- Full multi-vendor remediation
-- NETCONF / RESTCONF deployment workflows
-- Controller integration
-- Production web interface
+### V1.5
+
+- YANG-driven automation;
+- NETCONF device workflows;
+- RESTCONF device workflows;
+- `ncclient`;
+- Netmiko practice and comparison;
+- Ansible network automation;
+- advanced Jinja2;
+- pyATS integration;
+- IOS XE Day-0 and on-box automation; and
+- model-driven telemetry foundations.
+
+### V2 and Later
+
+- Terraform-based automation;
+- GitLab CI/CD network pipelines;
+- programmable CML digital-twin lifecycle;
+- broader source-of-truth integration;
+- containerised automation environments;
+- enterprise controller integration;
+- broader telemetry, logging, and webhook workflows;
+- advanced automation security and TLS workflows;
+- AI/MCP integration;
+- closed-loop autonomous remediation;
+- automatic rollback;
+- automatic configuration persistence;
+- multi-device transactional deployment;
+- full observability platform;
+- Kubernetes;
+- complex microservice architecture;
+- large-scale cloud networking;
+- full multi-vendor remediation; and
+- production web interface.
+
+Deferring these capabilities prevents V1 from expanding beyond its primary objective: proving a safe, deterministic, testable network automation lifecycle.
+
+## Future Development
+
+This document describes the implemented and intended architecture of V1.
+
+Development beyond the V1 architecture is tracked separately so future technologies do not become requirements of the current platform design.
+
+The planned progression is:
+
+```text
+V1
+Safe automation platform foundation
+    ↓
+V1.5
+Model-driven and device-automation bridge
+    ↓
+V2
+Broader NetDevOps automation ecosystem
+```
+
+Future development includes areas such as model-driven device automation, automation frameworks, CI/CD, programmable CML environments, enterprise controller automation, telemetry, security hardening, and AI/MCP integration.
+
+These capabilities are introduced only where they provide justified engineering value and must preserve the platform's existing validation, safety, and execution boundaries.
+
+See:
+
+- [Platform Roadmap](../roadmap/platform-roadmap.md)
+- [CCNP Automation Coverage](../roadmap/ccnp-automation-coverage.md)
