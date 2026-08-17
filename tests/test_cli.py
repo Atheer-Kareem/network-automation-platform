@@ -1,5 +1,15 @@
+import json
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+from network_automation_platform.branch_deployment import (
+    BranchDeploymentResult,
+    BranchDeviceDeploymentStatus,
+    DeploymentApprovalStatus,
+    DeviceBranchDeploymentResult,
+)
 from network_automation_platform.branch_plan import (
     BranchPlanResult,
     DevicePlanResult,
@@ -11,6 +21,7 @@ from network_automation_platform.branch_validation import (
 from network_automation_platform.cli import (
     build_parser,
     confirm_deployment,
+    run_deploy,
     run_plan,
     run_render_ssh_config,
     run_validate,
@@ -18,11 +29,58 @@ from network_automation_platform.cli import (
 from network_automation_platform.connection_settings import (
     ConnectionSettingsError,
 )
+from network_automation_platform.deployment_reporting import (
+    DeploymentReportWriteError,
+)
 from network_automation_platform.validation import (
     ValidationCheck,
     ValidationReport,
     ValidationStatus,
 )
+
+
+def _deployment_cli_result(
+    *,
+    status: BranchDeviceDeploymentStatus,
+    approval_status: DeploymentApprovalStatus,
+    drift: bool,
+) -> BranchDeploymentResult:
+    checks = [
+        ValidationCheck(
+            name="interface:Vlan99",
+            status=(
+                ValidationStatus.FAIL
+                if drift
+                else ValidationStatus.PASS
+            ),
+            message=(
+                "Interface Vlan99 is missing"
+                if drift
+                else "Interface Vlan99 matches expectation"
+            ),
+            reason="missing" if drift else None,
+        )
+    ]
+    return BranchDeploymentResult(
+        branch_id="branch-01",
+        devices=[
+            DeviceBranchDeploymentResult(
+                hostname="br01-sw01",
+                initial_validation=ValidationReport(
+                    hostname="br01-sw01",
+                    checks=checks,
+                ),
+                approval_status=approval_status,
+                status=status,
+                remediation_commands=(
+                    ["interface Vlan99", "no shutdown"]
+                    if drift
+                    else []
+                ),
+                message="Deployment workflow result",
+            )
+        ],
+    )
 
 
 def test_build_parser_parses_validate_command() -> None:
@@ -466,3 +524,172 @@ def test_confirm_deployment_defaults_to_no() -> None:
         )
 
     assert approved is False
+
+
+def test_build_parser_parses_deploy_report_json() -> None:
+    args = build_parser().parse_args(
+        [
+            "deploy",
+            "branch-01",
+            "--report-json",
+            "/tmp/branch-01-report.json",
+        ]
+    )
+
+    assert args.command == "deploy"
+    assert args.branch == "branch-01"
+    assert args.report_json == Path("/tmp/branch-01-report.json")
+
+
+@pytest.mark.parametrize(
+    (
+        "result",
+        "expected_exit_code",
+        "expected_outcome",
+    ),
+    [
+        pytest.param(
+            _deployment_cli_result(
+                status=BranchDeviceDeploymentStatus.SKIPPED,
+                approval_status=DeploymentApprovalStatus.NOT_REQUIRED,
+                drift=False,
+            ),
+            0,
+            "compliant",
+            id="compliant",
+        ),
+        pytest.param(
+            _deployment_cli_result(
+                status=BranchDeviceDeploymentStatus.BLOCKED,
+                approval_status=DeploymentApprovalStatus.NOT_REQUESTED,
+                drift=True,
+            ),
+            1,
+            "blocked",
+            id="blocked",
+        ),
+        pytest.param(
+            _deployment_cli_result(
+                status=BranchDeviceDeploymentStatus.SKIPPED,
+                approval_status=DeploymentApprovalStatus.DECLINED,
+                drift=True,
+            ),
+            0,
+            "declined",
+            id="declined",
+        ),
+    ],
+)
+def test_run_deploy_writes_report_for_completed_workflows(
+    result: BranchDeploymentResult,
+    expected_exit_code: int,
+    expected_outcome: str,
+    tmp_path,
+    capsys,
+) -> None:
+    report_path = tmp_path / "reports" / "branch-01.json"
+
+    with (
+        patch(
+            "network_automation_platform.cli.load_device_inventory",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "network_automation_platform.cli.load_connection_settings",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "network_automation_platform.cli.deploy_branch",
+            return_value=result,
+        ),
+    ):
+        exit_code = run_deploy(
+            "branch-01",
+            report_json=report_path,
+        )
+
+    output = capsys.readouterr().out
+    artifact = json.loads(report_path.read_text(encoding="utf-8"))
+    assert exit_code == expected_exit_code
+    assert f"Report: {report_path}" in output
+    assert artifact["schema_version"] == "1"
+    assert artifact["devices"][0]["final_outcome"] == expected_outcome
+
+
+def test_run_deploy_without_report_preserves_existing_behavior(
+    capsys,
+) -> None:
+    result = _deployment_cli_result(
+        status=BranchDeviceDeploymentStatus.SKIPPED,
+        approval_status=DeploymentApprovalStatus.NOT_REQUIRED,
+        drift=False,
+    )
+
+    with (
+        patch(
+            "network_automation_platform.cli.load_device_inventory",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "network_automation_platform.cli.load_connection_settings",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "network_automation_platform.cli.deploy_branch",
+            return_value=result,
+        ),
+        patch(
+            "network_automation_platform.cli."
+            "write_branch_deployment_report"
+        ) as write_mock,
+    ):
+        exit_code = run_deploy("branch-01")
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "RESULT: DEPLOYMENT WORKFLOW COMPLETED" in output
+    assert "Report:" not in output
+    write_mock.assert_not_called()
+
+
+def test_run_deploy_reports_artifact_failure_without_retrying_deployment(
+    capsys,
+    tmp_path,
+) -> None:
+    result = _deployment_cli_result(
+        status=BranchDeviceDeploymentStatus.SKIPPED,
+        approval_status=DeploymentApprovalStatus.NOT_REQUIRED,
+        drift=False,
+    )
+    report_path = tmp_path / "branch-01.json"
+
+    with (
+        patch(
+            "network_automation_platform.cli.load_device_inventory",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "network_automation_platform.cli.load_connection_settings",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "network_automation_platform.cli.deploy_branch",
+            return_value=result,
+        ) as deploy_mock,
+        patch(
+            "network_automation_platform.cli."
+            "write_branch_deployment_report",
+            side_effect=DeploymentReportWriteError("disk unavailable"),
+        ),
+    ):
+        exit_code = run_deploy(
+            "branch-01",
+            report_json=report_path,
+        )
+
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert "RESULT: DEPLOYMENT WORKFLOW COMPLETED" in captured.out
+    assert "Deployment workflow completed" in captured.err
+    assert "report could not be written" in captured.err
+    deploy_mock.assert_called_once()

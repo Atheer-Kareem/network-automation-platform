@@ -65,8 +65,17 @@ class BranchDeviceDeploymentStatus(StrEnum):
     DEPLOYED = "deployed"
 
 
+class DeploymentApprovalStatus(StrEnum):
+    NOT_REQUIRED = "not_required"
+    NOT_REQUESTED = "not_requested"
+    APPROVED = "approved"
+    DECLINED = "declined"
+
+
 class DeviceBranchDeploymentResult(BaseModel):
     hostname: str
+    initial_validation: ValidationReport
+    approval_status: DeploymentApprovalStatus
     status: BranchDeviceDeploymentStatus
     remediation_commands: list[str] = Field(default_factory=list)
     deployment: DeploymentResult | None = None
@@ -314,6 +323,10 @@ def deploy_branch(
                 results.append(
                     DeviceBranchDeploymentResult(
                         hostname=device.hostname,
+                        initial_validation=device.validation,
+                        approval_status=(
+                            DeploymentApprovalStatus.NOT_REQUIRED
+                        ),
                         status=(
                             BranchDeviceDeploymentStatus.SKIPPED
                         ),
@@ -329,6 +342,10 @@ def deploy_branch(
                 results.append(
                     DeviceBranchDeploymentResult(
                         hostname=device.hostname,
+                        initial_validation=device.validation,
+                        approval_status=(
+                            DeploymentApprovalStatus.NOT_REQUESTED
+                        ),
                         status=(
                             BranchDeviceDeploymentStatus.BLOCKED
                         ),
@@ -343,6 +360,10 @@ def deploy_branch(
             results.append(
                 DeviceBranchDeploymentResult(
                     hostname=device.hostname,
+                    initial_validation=device.validation,
+                    approval_status=(
+                        DeploymentApprovalStatus.NOT_REQUESTED
+                    ),
                     status=(
                         BranchDeviceDeploymentStatus.BLOCKED
                     ),
@@ -395,6 +416,10 @@ def deploy_branch(
                 results.append(
                     DeviceBranchDeploymentResult(
                         hostname=device.hostname,
+                        initial_validation=device.validation,
+                        approval_status=(
+                            DeploymentApprovalStatus.NOT_REQUIRED
+                        ),
                         status=(
                             BranchDeviceDeploymentStatus.SKIPPED
                         ),
@@ -415,6 +440,12 @@ def deploy_branch(
             results.append(
                 DeviceBranchDeploymentResult(
                     hostname=device.hostname,
+                    initial_validation=device.validation,
+                    approval_status=(
+                        DeploymentApprovalStatus.APPROVED
+                        if approval_decisions[device.hostname]
+                        else DeploymentApprovalStatus.DECLINED
+                    ),
                     status=BranchDeviceDeploymentStatus.SKIPPED,
                     remediation_commands=(
                         device.remediation_commands
@@ -438,6 +469,10 @@ def deploy_branch(
             results.append(
                 DeviceBranchDeploymentResult(
                     hostname=device.hostname,
+                    initial_validation=device.validation,
+                    approval_status=(
+                        DeploymentApprovalStatus.NOT_REQUIRED
+                    ),
                     status=BranchDeviceDeploymentStatus.SKIPPED,
                     message=device.message,
                 )
@@ -466,6 +501,8 @@ def deploy_branch(
         results.append(
             DeviceBranchDeploymentResult(
                 hostname=device.hostname,
+                initial_validation=device.validation,
+                approval_status=DeploymentApprovalStatus.APPROVED,
                 status=BranchDeviceDeploymentStatus.DEPLOYED,
                 remediation_commands=(
                     device.remediation_commands
