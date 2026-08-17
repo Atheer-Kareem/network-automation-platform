@@ -8,12 +8,12 @@ This repository implements a production-style network automation platform for in
 
 - `src/network_automation_platform/`: application models, planning, validation, remediation, orchestration, and platform adapters.
 - `intent/`: declarative branch inputs.
-- `inventory/`: device capabilities, connection data, SSH configuration, and host keys.
+- `inventory/`: device inventory, capabilities, environment configuration, and SSH-related configuration.
+- `inventory/ssh/`: generated SSH configuration documentation and local SSH runtime/trust state; `known_hosts` is not version controlled.
 - `tests/`: unit, service, orchestration, rendering, and safety coverage.
 - `docs/architecture/`: current design and operational boundaries.
 - `docs/adr/`: accepted architectural decisions.
 - `docs/roadmap/`: completed and planned platform capabilities.
-- `scripts/`: repository utility scripts.
 
 ## Authoritative context
 
