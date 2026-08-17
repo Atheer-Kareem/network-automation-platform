@@ -333,7 +333,7 @@ def test_run_render_ssh_config_returns_zero(
     assert write_mock.call_count == 1
     assert "Generated: inventory/ssh/lab_config" in output
 
-def test_run_plan_reports_unsupported_remediation(
+def test_run_plan_reports_unsupported_vlan_status_remediation(
     capsys,
 ) -> None:
     result = BranchPlanResult(
@@ -348,7 +348,9 @@ def test_run_plan_reports_unsupported_remediation(
                         ValidationCheck(
                             name="vlan:99",
                             status=ValidationStatus.FAIL,
-                            message="VLAN 99 is missing",
+                            message="status expected active, got suspend",
+                            reason="mismatch",
+                            mismatched_fields=["status"],
                         )
                     ],
                 ),
@@ -377,11 +379,68 @@ def test_run_plan_reports_unsupported_remediation(
 
     assert exit_code == 1
     assert "DRIFT" in output
-    assert "VLAN 99 is missing" in output
+    assert "status expected active, got suspend" in output
     assert "Targeted remediation:" in output
     assert (
         "No supported targeted remediation available."
         in output
+    )
+
+def test_run_plan_reports_supported_vlan_remediation(
+    capsys,
+) -> None:
+    result = BranchPlanResult(
+        branch_id="branch-01",
+        devices=[
+            DevicePlanResult(
+                hostname="br01-sw01",
+                candidate_config="hostname br01-sw01",
+                validation=ValidationReport(
+                    hostname="br01-sw01",
+                    checks=[
+                        ValidationCheck(
+                            name="vlan:99",
+                            status=ValidationStatus.FAIL,
+                            message="VLAN 99 is missing",
+                            reason="missing",
+                        )
+                    ],
+                ),
+                remediation_commands=[
+                    "vlan 99",
+                    "name MANAGEMENT",
+                ],
+            )
+        ],
+    )
+
+    with (
+        patch(
+            "network_automation_platform.cli."
+            "load_device_inventory"
+        ),
+        patch(
+            "network_automation_platform.cli."
+            "load_connection_settings"
+        ),
+        patch(
+            "network_automation_platform.cli.plan_branch",
+            return_value=result,
+        ),
+    ):
+        exit_code = run_plan("branch-01")
+
+    output = capsys.readouterr().out
+
+    assert exit_code == 1
+    assert "DRIFT" in output
+    assert "VLAN 99 is missing" in output
+    assert "Targeted remediation:" in output
+    assert "vlan 99" in output
+    assert "name MANAGEMENT" in output
+    assert (
+        "No supported targeted remediation available."
+        not in output
     )
 
 def test_confirm_deployment_accepts_yes() -> None:

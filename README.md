@@ -376,8 +376,6 @@ V1 proves the core network automation architecture and controlled execution mode
 Remaining V1 work includes:
 
 ```text
-VLAN remediation
-        ↓
 Switchport remediation
         ↓
 Routing and OSPF operational validation
@@ -548,7 +546,9 @@ See [ADR-0004: Keep GitHub Canonical and Use GitLab for CI/CD Automation](docs/a
 
 ## Current Remediation Scope
 
-The currently supported targeted interface remediation types are:
+The currently supported targeted remediation types are:
+
+### Interfaces
 
 ```text
 Missing managed interface / SVI
@@ -558,17 +558,22 @@ IPv4 prefix-length mismatch
 Administrative-state mismatch
 ```
 
+### VLANs
+
+```text
+Missing managed VLAN
+VLAN name mismatch
+```
+
 For IPv4 address or prefix-length drift, the platform renders the complete desired Cisco IOS `ip address <address> <mask>` configuration unit.
 
-Operational interface status and protocol mismatches are not automatically remediated.
+Operational interface status/protocol mismatches and VLAN status mismatches may be detected by validation, but they are not eligible for automatic remediation.
 
 The remediation architecture is designed so additional types can be introduced without moving vendor-specific command generation into the core planning layer.
 
 Remaining planned V1 additions include:
 
 ```text
-Missing VLAN
-VLAN name mismatch
 Switchport mode mismatch
 Access VLAN mismatch
 Voice VLAN mismatch

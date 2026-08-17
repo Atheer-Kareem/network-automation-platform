@@ -353,6 +353,8 @@ def test_validate_device_state_fails_vlan_mismatch() -> None:
     assert report.checks[0].name == "vlan:10"
     assert report.checks[0].status == ValidationStatus.FAIL
     assert "name expected USERS, got WRONG" in report.checks[0].message
+    assert report.checks[0].reason == "mismatch"
+    assert report.checks[0].mismatched_fields == ["name"]
 
 def test_validate_device_state_fails_missing_vlan() -> None:
     state = DeviceState(
@@ -378,7 +380,87 @@ def test_validate_device_state_fails_missing_vlan() -> None:
     assert report.checks[0].name == "vlan:99"
     assert report.checks[0].status == ValidationStatus.FAIL
     assert report.checks[0].message == "VLAN 99 is missing"
-    assert report.checks[0].reason is None
+    assert report.checks[0].reason == "missing"
+    assert report.checks[0].mismatched_fields == []
+
+def test_validate_device_state_reports_vlan_status_mismatch() -> None:
+    state = DeviceState(
+        hostname="br01-sw01",
+        interfaces=[],
+        routes=[],
+        vlans=[
+            VlanState(
+                vlan_id=10,
+                name="USERS",
+                status="suspend",
+            )
+        ],
+    )
+
+    expectation = ValidationExpectation(
+        vlans=[
+            VlanExpectation(
+                vlan_id=10,
+                name="USERS",
+                status="active",
+            )
+        ]
+    )
+
+    report = validate_device_state(state, expectation)
+
+    assert report.passed is False
+    assert len(report.checks) == 1
+
+    check = report.checks[0]
+
+    assert check.name == "vlan:10"
+    assert check.status == ValidationStatus.FAIL
+    assert check.reason == "mismatch"
+    assert check.mismatched_fields == ["status"]
+    assert "status expected active, got suspend" in check.message
+
+
+def test_validate_device_state_reports_multiple_vlan_mismatches() -> None:
+    state = DeviceState(
+        hostname="br01-sw01",
+        interfaces=[],
+        routes=[],
+        vlans=[
+            VlanState(
+                vlan_id=10,
+                name="WRONG",
+                status="suspend",
+            )
+        ],
+    )
+
+    expectation = ValidationExpectation(
+        vlans=[
+            VlanExpectation(
+                vlan_id=10,
+                name="USERS",
+                status="active",
+            )
+        ]
+    )
+
+    report = validate_device_state(state, expectation)
+
+    assert report.passed is False
+    assert len(report.checks) == 1
+
+    check = report.checks[0]
+
+    assert check.name == "vlan:10"
+    assert check.status == ValidationStatus.FAIL
+    assert check.reason == "mismatch"
+    assert check.mismatched_fields == [
+        "name",
+        "status",
+    ]
+    assert "name expected USERS, got WRONG" in check.message
+    assert "status expected active, got suspend" in check.message
 
 def test_validate_device_state_passes_switchport() -> None:
     state = DeviceState(

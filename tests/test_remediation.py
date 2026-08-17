@@ -2,6 +2,10 @@ from ipaddress import IPv4Address
 
 import pytest
 
+from network_automation_platform.remediation import (
+    RemediationAction,
+    VlanRemediation,
+)
 from network_automation_platform.remediation_planner import (
     RemediationPlanningError,
     build_device_remediation_plan,
@@ -16,6 +20,69 @@ from network_automation_platform.validation import (
     VlanExpectation,
 )
 
+
+def test_vlan_remediation_models_desired_vlan_configuration() -> None:
+    remediation = VlanRemediation(
+        kind="vlan",
+        vlan_id=10,
+        name="USERS",
+    )
+
+    assert remediation.kind == "vlan"
+    assert remediation.vlan_id == 10
+    assert remediation.name == "USERS"
+
+def test_remediation_action_accepts_vlan_remediation() -> None:
+    remediation = VlanRemediation(
+        kind="vlan",
+        vlan_id=10,
+        name="USERS",
+    )
+
+    action = RemediationAction(
+        description="Create/configure VLAN 10",
+        remediation=remediation,
+    )
+
+    assert action.remediation == remediation
+    assert action.remediation.kind == "vlan"
+
+def test_build_missing_vlan_remediation() -> None:
+    expectation = ValidationExpectation(
+        vlans=[
+            VlanExpectation(
+                vlan_id=10,
+                name="USERS",
+                status="active",
+            )
+        ]
+    )
+
+    report = ValidationReport(
+        hostname="br01-sw01",
+        checks=[
+            ValidationCheck(
+                name="vlan:10",
+                status=ValidationStatus.FAIL,
+                message="VLAN 10 is missing",
+                reason="missing",
+            )
+        ],
+    )
+
+    plan = build_device_remediation_plan(
+        expectation=expectation,
+        report=report,
+    )
+
+    assert len(plan.actions) == 1
+
+    action = plan.actions[0]
+
+    assert action.description == "Create/configure VLAN 10"
+    assert action.remediation.kind == "vlan"
+    assert action.remediation.vlan_id == 10
+    assert action.remediation.name == "USERS"
 
 def test_build_missing_interface_remediation() -> None:
     expectation = ValidationExpectation(
@@ -354,3 +421,100 @@ def test_build_interface_remediation_targets_multiple_mismatches() -> None:
     assert remediation.description == "WAN transit"
     assert remediation.ipv4 is None
     assert remediation.enabled is True
+
+def test_build_vlan_name_mismatch_remediation() -> None:
+    expectation = ValidationExpectation(
+        vlans=[
+            VlanExpectation(
+                vlan_id=10,
+                name="USERS",
+                status="active",
+            )
+        ]
+    )
+
+    report = ValidationReport(
+        hostname="br01-sw01",
+        checks=[
+            ValidationCheck(
+                name="vlan:10",
+                status=ValidationStatus.FAIL,
+                message="name expected USERS, got WRONG",
+                reason="mismatch",
+                mismatched_fields=["name"],
+            )
+        ],
+    )
+
+    plan = build_device_remediation_plan(
+        expectation=expectation,
+        report=report,
+    )
+
+    assert len(plan.actions) == 1
+
+    action = plan.actions[0]
+
+    assert action.description == "Remediate VLAN 10"
+    assert action.remediation.kind == "vlan"
+    assert action.remediation.vlan_id == 10
+    assert action.remediation.name == "USERS"
+
+def test_vlan_status_mismatch_is_not_supported_remediation() -> None:
+    check = ValidationCheck(
+        name="vlan:10",
+        status=ValidationStatus.FAIL,
+        message="status expected active, got suspend",
+        reason="mismatch",
+        mismatched_fields=["status"],
+    )
+
+    assert is_supported_remediation_check(check) is False
+
+def test_vlan_mixed_name_and_status_mismatch_is_unsupported() -> None:
+    check = ValidationCheck(
+        name="vlan:10",
+        status=ValidationStatus.FAIL,
+        message=(
+            "name expected USERS, got WRONG; "
+            "status expected active, got suspend"
+        ),
+        reason="mismatch",
+        mismatched_fields=[
+            "name",
+            "status",
+        ],
+    )
+
+    assert is_supported_remediation_check(check) is False
+
+def test_planner_requires_name_for_vlan_remediation() -> None:
+    expectation = ValidationExpectation(
+        vlans=[
+            VlanExpectation(
+                vlan_id=10,
+                status="active",
+            )
+        ]
+    )
+
+    report = ValidationReport(
+        hostname="br01-sw01",
+        checks=[
+            ValidationCheck(
+                name="vlan:10",
+                status=ValidationStatus.FAIL,
+                message="VLAN 10 is missing",
+                reason="missing",
+            )
+        ],
+    )
+
+    with pytest.raises(
+        RemediationPlanningError,
+        match="desired VLAN name is missing",
+    ):
+        build_device_remediation_plan(
+            expectation=expectation,
+            report=report,
+        )

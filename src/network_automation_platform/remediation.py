@@ -10,10 +10,16 @@ class InterfaceRemediation(BaseModel):
     ipv4: str | None = None
     enabled: bool | None = None
 
+class VlanRemediation(BaseModel):
+    kind: Literal["vlan"]
+    vlan_id: int = Field(ge=1, le=4094)
+    name: str
 
 class RemediationAction(BaseModel):
     description: str
-    remediation: InterfaceRemediation
+    remediation: InterfaceRemediation | VlanRemediation = Field(
+        discriminator="kind",
+    )
 
 
 class DeviceRemediationPlan(BaseModel):

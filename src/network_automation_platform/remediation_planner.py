@@ -2,6 +2,7 @@ from network_automation_platform.remediation import (
     DeviceRemediationPlan,
     InterfaceRemediation,
     RemediationAction,
+    VlanRemediation,
 )
 from network_automation_platform.validation import (
     InterfaceExpectation,
@@ -9,6 +10,7 @@ from network_automation_platform.validation import (
     ValidationExpectation,
     ValidationReport,
     ValidationStatus,
+    VlanExpectation,
 )
 
 
@@ -21,6 +23,11 @@ CONFIGURABLE_INTERFACE_MISMATCH_FIELDS = frozenset(
         "ipv4",
         "ipv4_prefixlen",
         "admin_enabled",
+    }
+)
+CONFIGURABLE_VLAN_MISMATCH_FIELDS = frozenset(
+    {
+        "name",
     }
 )
 
@@ -44,6 +51,21 @@ def _build_interface_remediation(
         description=expected.description,
         ipv4=ipv4,
         enabled=expected.admin_enabled,
+    )
+
+def _build_vlan_remediation(
+    expected: VlanExpectation,
+) -> VlanRemediation:
+    if expected.name is None:
+        raise RemediationPlanningError(
+            f"Cannot remediate VLAN {expected.vlan_id}: "
+            "desired VLAN name is missing"
+        )
+
+    return VlanRemediation(
+        kind="vlan",
+        vlan_id=expected.vlan_id,
+        name=expected.name,
     )
 
 def _build_interface_mismatch_remediation(
@@ -101,48 +123,84 @@ def build_device_remediation_plan(
         if not is_supported_remediation_check(check):
             continue
 
-        interface_name = check.name.removeprefix(
-            "interface:"
-        )
-
-        expected = next(
-            (
-                interface
-                for interface in expectation.interfaces
-                if interface.name == interface_name
-            ),
-            None,
-        )
-
-        if expected is None:
-            raise RemediationPlanningError(
-                "Validation references interface "
-                f"{interface_name}, but it is not present "
-                "in the validation expectation"
+        if check.name.startswith("interface:"):
+            interface_name = check.name.removeprefix(
+                "interface:"
             )
 
-        if check.reason == "missing":
-            remediation = _build_interface_remediation(
-                expected
-            )
-            description = (
-                f"Create/configure interface {interface_name}"
-            )
-        else:
-            remediation = _build_interface_mismatch_remediation(
-                expected,
-                check.mismatched_fields,
-            )
-            description = (
-                f"Remediate interface {interface_name}"
+            expected_interface = next(
+                (
+                    interface
+                    for interface in expectation.interfaces
+                    if interface.name == interface_name
+                ),
+                None,
             )
 
-        actions.append(
-            RemediationAction(
-                description=description,
-                remediation=remediation,
+            if expected_interface is None:
+                raise RemediationPlanningError(
+                    "Validation references interface "
+                    f"{interface_name}, but it is not present "
+                    "in the validation expectation"
+                )
+
+            if check.reason == "missing":
+                remediation = _build_interface_remediation(
+                    expected_interface
+                )
+                description = (
+                    f"Create/configure interface {interface_name}"
+                )
+            else:
+                remediation = _build_interface_mismatch_remediation(
+                    expected_interface,
+                    check.mismatched_fields,
+                )
+                description = (
+                    f"Remediate interface {interface_name}"
+                )
+
+            actions.append(
+                RemediationAction(
+                    description=description,
+                    remediation=remediation,
+                )
             )
-        )
+
+        elif check.name.startswith("vlan:"):
+            vlan_id = int(
+                check.name.removeprefix("vlan:")
+            )
+
+            expected_vlan = next(
+                (
+                    vlan
+                    for vlan in expectation.vlans
+                    if vlan.vlan_id == vlan_id
+                ),
+                None,
+            )
+
+            if expected_vlan is None:
+                raise RemediationPlanningError(
+                    "Validation references VLAN "
+                    f"{vlan_id}, but it is not present "
+                    "in the validation expectation"
+                )
+
+            if check.reason == "missing":
+                description = f"Create/configure VLAN {vlan_id}"
+            else:
+                description = f"Remediate VLAN {vlan_id}"
+
+            actions.append(
+                RemediationAction(
+                    description=description,
+                    remediation=_build_vlan_remediation(
+                        expected_vlan
+                    ),
+                )
+            )
 
     return DeviceRemediationPlan(
         hostname=report.hostname,
@@ -152,21 +210,35 @@ def build_device_remediation_plan(
 def is_supported_remediation_check(
     check: ValidationCheck,
 ) -> bool:
-    if (
-        check.status != ValidationStatus.FAIL
-        or not check.name.startswith("interface:")
-    ):
+    if check.status != ValidationStatus.FAIL:
         return False
 
-    if check.reason == "missing":
-        return True
+    if check.name.startswith("interface:"):
+        if check.reason == "missing":
+            return True
 
-    if check.reason != "mismatch":
-        return False
+        if check.reason != "mismatch":
+            return False
 
-    if not check.mismatched_fields:
-        return False
+        if not check.mismatched_fields:
+            return False
 
-    return set(check.mismatched_fields).issubset(
-        CONFIGURABLE_INTERFACE_MISMATCH_FIELDS
-    )
+        return set(check.mismatched_fields).issubset(
+            CONFIGURABLE_INTERFACE_MISMATCH_FIELDS
+        )
+
+    if check.name.startswith("vlan:"):
+        if check.reason == "missing":
+            return True
+
+        if check.reason != "mismatch":
+            return False
+
+        if not check.mismatched_fields:
+            return False
+
+        return set(check.mismatched_fields).issubset(
+            CONFIGURABLE_VLAN_MISMATCH_FIELDS
+        )
+
+    return False

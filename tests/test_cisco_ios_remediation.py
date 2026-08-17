@@ -18,6 +18,7 @@ from network_automation_platform.validation import (
     ValidationExpectation,
     ValidationReport,
     ValidationStatus,
+    VlanExpectation,
 )
 
 
@@ -303,4 +304,75 @@ def test_admin_disable_mismatch_renders_only_shutdown_command() -> None:
     assert commands == [
         "interface GigabitEthernet0/1",
         "shutdown",
+    ]
+
+def test_missing_vlan_drift_renders_targeted_commands() -> None:
+    expectation = ValidationExpectation(
+        vlans=[
+            VlanExpectation(
+                vlan_id=10,
+                name="USERS",
+                status="active",
+            )
+        ]
+    )
+
+    report = ValidationReport(
+        hostname="br01-sw01",
+        checks=[
+            ValidationCheck(
+                name="vlan:10",
+                status=ValidationStatus.FAIL,
+                message="VLAN 10 is missing",
+                reason="missing",
+            )
+        ],
+    )
+
+    plan = build_device_remediation_plan(
+        expectation=expectation,
+        report=report,
+    )
+
+    commands = render_device_remediation(plan)
+
+    assert commands == [
+        "vlan 10",
+        "name USERS",
+    ]
+
+def test_vlan_name_mismatch_renders_targeted_commands() -> None:
+    expectation = ValidationExpectation(
+        vlans=[
+            VlanExpectation(
+                vlan_id=10,
+                name="USERS",
+                status="active",
+            )
+        ]
+    )
+
+    report = ValidationReport(
+        hostname="br01-sw01",
+        checks=[
+            ValidationCheck(
+                name="vlan:10",
+                status=ValidationStatus.FAIL,
+                message="name expected USERS, got WRONG",
+                reason="mismatch",
+                mismatched_fields=["name"],
+            )
+        ],
+    )
+
+    plan = build_device_remediation_plan(
+        expectation=expectation,
+        report=report,
+    )
+
+    commands = render_device_remediation(plan)
+
+    assert commands == [
+        "vlan 10",
+        "name USERS",
     ]

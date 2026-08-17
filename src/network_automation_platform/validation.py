@@ -326,11 +326,13 @@ def validate_device_state(
                     name=f"vlan:{expected.vlan_id}",
                     status=ValidationStatus.FAIL,
                     message=f"VLAN {expected.vlan_id} is missing",
+                    reason="missing",
                 )
             )
             continue
 
         failures: list[str] = []
+        mismatched_fields: list[str] = []
 
         if (
             expected.name is not None
@@ -339,6 +341,7 @@ def validate_device_state(
             failures.append(
                 f"name expected {expected.name}, got {actual.name}"
             )
+            mismatched_fields.append("name")
 
         if (
             expected.status is not None
@@ -347,6 +350,7 @@ def validate_device_state(
             failures.append(
                 f"status expected {expected.status}, got {actual.status}"
             )
+            mismatched_fields.append("status")
 
         if failures:
             checks.append(
@@ -354,6 +358,8 @@ def validate_device_state(
                     name=f"vlan:{expected.vlan_id}",
                     status=ValidationStatus.FAIL,
                     message="; ".join(failures),
+                    reason="mismatch",
+                    mismatched_fields=mismatched_fields,
                 )
             )
         else:
