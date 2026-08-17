@@ -440,6 +440,56 @@ def test_collect_device_state() -> None:
         call("show ip ospf neighbor"),
     ]
 
+
+@pytest.mark.parametrize(
+    "connection_error",
+    [
+        pytest.param(
+            RuntimeError("connection refused"),
+            id="unreachable-device",
+        ),
+        pytest.param(
+            RuntimeError("authentication failed"),
+            id="authentication-failure",
+        ),
+        pytest.param(
+            RuntimeError("host key verification failed"),
+            id="ssh-host-key-failure",
+        ),
+    ],
+)
+def test_collect_device_state_wraps_connection_open_failures(
+    connection_error: RuntimeError,
+) -> None:
+    device = InventoryDevice(
+        hostname="br01-rtr01",
+        host=str(TEST_ROUTER_IP),
+        port=22,
+        driver="cisco_ios",
+    )
+    configured_password = "credential-must-not-appear"
+    settings = ConnectionSettings(
+        username="netdevops",
+        password=SecretStr(configured_password),
+        ssh_config_file=Path("inventory/ssh/lab_config"),
+        ssh_known_hosts_file=Path("inventory/ssh/known_hosts"),
+    )
+    connection = MagicMock()
+    connection.__enter__.side_effect = connection_error
+
+    with patch(
+        "network_automation_platform.collectors.cisco_ios."
+        "build_device_connection",
+        return_value=connection,
+    ), pytest.raises(StateCollectionError) as exc_info:
+        collect_device_state(device, settings)
+
+    message = str(exc_info.value)
+    assert "br01-rtr01" in message
+    assert str(connection_error) in message
+    assert configured_password not in message
+    connection.send_command.assert_not_called()
+
 def test_parse_ip_ospf_neighbor() -> None:
     parsed_output = [
         {

@@ -272,9 +272,9 @@ The optional `nap deploy --report-json PATH` interface writes readable UTF-8 JSO
 
 Reporting remains separate from orchestration and device execution. It never authorizes writes, never retries deployment, and adds no rollback or multi-device transaction semantics. Broader retention and external audit-system integration remain future work.
 
-Implementation and automated coverage are complete. Live acceptance of JSON evidence from an operator-approved deployment workflow remains pending.
+Implementation, automated coverage, and live acceptance of schema-version `1` JSON evidence are complete.
 
-#### 7. Failure-path hardening
+#### 7. Failure-path hardening [In Progress]
 
 Systematically exercise important failure conditions, including:
 
@@ -289,6 +289,8 @@ Systematically exercise important failure conditions, including:
 - post-change collection failure;
 - post-change validation failure; and
 - already-compliant state.
+
+The automated coverage audit and current evidence are recorded in the [V1 failure-path matrix](../acceptance/v1-failure-path-matrix.md). All eleven paths have deterministic automated evidence. Safe read-only acceptance of unreachable, authentication, and host-key failures remains pending; destructive post-write failure injection is intentionally excluded.
 
 #### 8. V1 acceptance and release
 

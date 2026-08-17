@@ -511,7 +511,7 @@ Controlled deployment currently has the following limitations:
 
 These constraints are intentional at the current stage of V1.
 
-The remaining V1 work focuses on deployment-report acceptance, proving important failure paths, and final representative acceptance before declaring V1 complete. Live CML acceptance of OSPF adjacency and learned-route outcome validation is complete.
+Live schema-version `1` deployment-report acceptance and live CML acceptance of OSPF adjacency and learned-route outcome validation are complete. The remaining V1 work focuses on selected safe failure-path acceptance and final representative acceptance before declaring V1 complete. Initial connection failures occur before a branch deployment result exists, so V1 reports CLI exit 2 without a JSON deployment artifact for those attempts.
 
 ## Out of Scope for V1
 

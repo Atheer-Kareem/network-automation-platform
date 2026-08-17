@@ -1,6 +1,7 @@
 from pathlib import Path
 from unittest.mock import Mock, call, patch
 
+import pytest
 from pydantic import SecretStr
 
 from network_automation_platform.branch_deployment import (
@@ -11,6 +12,9 @@ from network_automation_platform.branch_deployment import (
 from network_automation_platform.change_validation import (
     ChangeValidationResult,
     ValidationPhase,
+)
+from network_automation_platform.collectors.cisco_ios import (
+    StateCollectionError,
 )
 from network_automation_platform.connection_settings import (
     ConnectionSettings,
@@ -152,6 +156,42 @@ def test_deploy_branch_skips_compliant_devices() -> None:
         for device in result.devices
     )
 
+    deploy_mock.assert_not_called()
+
+
+def test_deploy_branch_initial_collection_failure_prevents_approval_and_write(
+) -> None:
+    approve_mock = Mock()
+
+    with (
+        patch(
+            "network_automation_platform.branch_deployment."
+            "_build_branch_preflight",
+            side_effect=StateCollectionError(
+                "Unable to collect device state from br01-rtr01: "
+                "connection refused"
+            ),
+        ),
+        patch(
+            "network_automation_platform.branch_deployment."
+            "deploy_inventory_device",
+        ) as deploy_mock,
+        pytest.raises(StateCollectionError),
+    ):
+        deploy_branch(
+            "branch-01",
+            intent_path=Path("intent/branches/branch-01.yaml"),
+            inventory=make_lab_inventory(),
+            settings=ConnectionSettings(
+                username="netdevops",
+                password=SecretStr("test"),
+                ssh_config_file=Path("/tmp/lab_config"),
+                ssh_known_hosts_file=Path("/tmp/known_hosts"),
+            ),
+            approve=approve_mock,
+        )
+
+    approve_mock.assert_not_called()
     deploy_mock.assert_not_called()
 
 def test_deploy_branch_blocks_unsupported_drift() -> None:
