@@ -583,7 +583,7 @@ Operational interface status/protocol mismatches and VLAN status mismatches may 
 
 The remediation architecture is designed so additional types can be introduced without moving vendor-specific command generation into the core planning layer.
 
-The next planned V1 implementation item is routing and OSPF operational validation. Live CML acceptance of targeted switchport remediation remains pending.
+The next planned V1 implementation item is routing and OSPF operational validation. Live CML acceptance of targeted switchport remediation has been completed.
 
 ## V1 Safety Boundaries
 
