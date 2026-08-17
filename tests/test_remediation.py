@@ -335,6 +335,17 @@ def test_ospf_operational_failure_is_not_supported_remediation() -> None:
     )
     assert plan.has_changes is False
 
+
+def test_learned_route_failure_is_not_supported_remediation() -> None:
+    check = ValidationCheck(
+        name="route:10.200.0.1/32",
+        status=ValidationStatus.FAIL,
+        message="Route 10.200.0.1/32 is missing",
+        reason="missing",
+    )
+
+    assert is_supported_remediation_check(check) is False
+
 def test_planner_requires_prefix_for_ipv4_remediation() -> None:
     expectation = ValidationExpectation(
         interfaces=[

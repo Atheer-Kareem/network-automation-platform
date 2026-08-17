@@ -28,6 +28,7 @@ def test_router_desired_state_contains_ospf_networks() -> None:
     assert intent.networks.users.prefix in router.ospf.networks
     assert intent.networks.management.prefix in router.ospf.networks
     assert router.ospf.neighbor_address == intent.routing.neighbor_address
+    assert router.ospf.learned_routes == intent.routing.learned_routes
 
 
 def test_switch_desired_state_contains_standard_vlans() -> None:

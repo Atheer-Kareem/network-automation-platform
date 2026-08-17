@@ -17,6 +17,23 @@ def test_branch_01_intent_is_valid() -> None:
     intent = load_branch_intent(Path("intent/branches/branch-01.yaml"))
 
     assert str(intent.routing.neighbor_address) == "10.101.255.2"
+    assert [str(route) for route in intent.routing.learned_routes] == [
+        "10.200.0.1/32"
+    ]
+
+
+def test_duplicate_learned_route_prefixes_are_rejected() -> None:
+    raw_intent = load_raw_branch_intent()
+    raw_intent["routing"]["learned_routes"] = [
+        "10.200.0.1/32",
+        "10.200.0.1/32",
+    ]
+
+    with pytest.raises(
+        ValidationError,
+        match="learned_routes contains duplicate prefixes",
+    ):
+        BranchIntent.model_validate(raw_intent)
 
 
 @pytest.mark.parametrize(

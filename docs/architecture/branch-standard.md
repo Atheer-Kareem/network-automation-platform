@@ -128,7 +128,11 @@ Branch intent explicitly identifies the expected upstream peer by neighbor addre
 
 The vendor-neutral desired state and validation expectation carry that address, the WAN role's mapped physical interface, and the protocol state `FULL`. Peer identity is not inferred from a hard-coded addressing rule.
 
-OSPF adjacency is operational validation only. OSPF router ID is not validated, unexpected additional neighbors are not rejected, and OSPF failures cannot produce remediation. OSPF-learned route outcome validation remains a subsequent V1 increment.
+Required learned prefixes are explicit in the parent OSPF routing context and inherit its protocol. Branch 01 requires `10.200.0.1/32`, the representative upstream service route intentionally originated by `core01`. Validation derives the expected next hop from the declared peer and the physical outgoing interface from the logical `wan` role's platform mapping rather than duplicating either value in intent.
+
+The learned-route outcome validates the prefix, OSPF protocol, expected peer next hop, and mapped WAN interface. Additional routes remain permitted. Administrative distance, metric, route subtype, and ECMP cardinality are not validated.
+
+OSPF adjacency and learned-route outcomes are operational validation only. OSPF router ID is not validated, unexpected additional neighbors are not rejected, and OSPF failures cannot produce remediation. They block branch deployment before writes. OSPF adjacency live CML acceptance is complete; learned-route outcome live CML acceptance remains pending.
 
 ## Management Plane Separation
 

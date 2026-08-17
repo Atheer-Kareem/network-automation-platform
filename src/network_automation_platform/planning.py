@@ -55,6 +55,7 @@ def build_branch_desired_state(intent: BranchIntent) -> BranchDesiredState:
         ospf=OspfDesiredState(
             area=intent.routing.area,
             neighbor_address=intent.routing.neighbor_address,
+            learned_routes=intent.routing.learned_routes,
             networks=[
                 intent.networks.users.prefix,
                 intent.networks.voice.prefix,

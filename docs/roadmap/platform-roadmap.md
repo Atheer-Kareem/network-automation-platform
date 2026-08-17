@@ -156,6 +156,7 @@ Current V1 capabilities include:
 - capability-aware live-state collection;
 - interface validation;
 - route validation;
+- required OSPF-learned route outcome validation;
 - VLAN validation;
 - switchport validation;
 - expected OSPF adjacency validation;
@@ -245,9 +246,9 @@ Extend validation beyond configuration presence toward network behavior.
 
 Expected OSPF adjacency validation is complete. The peer address is explicit branch intent and generic validation checks the mapped WAN interface and normalized `FULL` state. IOS adjacency-role suffixes are normalized at the collector boundary.
 
-This increment does not validate OSPF router ID or reject unexpected additional neighbors. OSPF failures remain unsupported for remediation and block branch deployment before writes.
+OSPF-learned route outcome implementation is complete. Branch intent explicitly requires `10.200.0.1/32` within the OSPF context. Validation derives the next hop from the expected peer and the outgoing interface from the mapped `wan` role, then checks the prefix, IOS OSPF protocol, next hop, and interface. Additional routes remain permitted; administrative distance, metric, route subtype, and ECMP cardinality are not validated.
 
-OSPF-learned route outcome validation is the next routing step. Live CML acceptance of the adjacency increment remains outstanding.
+OSPF adjacency and learned-route failures remain unsupported for remediation and block branch deployment before writes. Live CML acceptance of adjacency validation is complete. Read-only route-outcome baseline validation is complete, while controlled learned-route withdrawal and restoration acceptance remains pending; therefore this roadmap item remains in progress.
 
 #### 6. Deployment evidence and reporting
 

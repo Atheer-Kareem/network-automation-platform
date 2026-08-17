@@ -109,21 +109,34 @@ def _route_matches(
     actual: RouteState,
     expected: RouteExpectation,
 ) -> bool:
-    return not (
-        (
-            expected.protocol is not None
-            and actual.protocol != expected.protocol
-        )
-        or (
-            expected.next_hop is not None
-            and actual.next_hop != expected.next_hop
-        )
-        or (
-            expected.outgoing_interface is not None
-            and actual.outgoing_interface
-            != expected.outgoing_interface
-        )
-    )
+    return not _route_mismatched_fields(actual, expected)
+
+
+def _route_mismatched_fields(
+    actual: RouteState,
+    expected: RouteExpectation,
+) -> list[str]:
+    mismatched_fields: list[str] = []
+
+    if (
+        expected.protocol is not None
+        and actual.protocol != expected.protocol
+    ):
+        mismatched_fields.append("protocol")
+
+    if (
+        expected.next_hop is not None
+        and actual.next_hop != expected.next_hop
+    ):
+        mismatched_fields.append("next_hop")
+
+    if (
+        expected.outgoing_interface is not None
+        and actual.outgoing_interface != expected.outgoing_interface
+    ):
+        mismatched_fields.append("outgoing_interface")
+
+    return mismatched_fields
 
 
 def validate_device_state(
@@ -254,6 +267,7 @@ def validate_device_state(
                     name=f"route:{expected.network}",
                     status=ValidationStatus.FAIL,
                     message=f"Route {expected.network} is missing",
+                    reason="missing",
                 )
             )
             continue
@@ -274,30 +288,24 @@ def validate_device_state(
         if len(matching_routes) == 1:
             actual = matching_routes[0]
             failures: list[str] = []
+            mismatched_fields = _route_mismatched_fields(
+                actual,
+                expected,
+            )
 
-            if (
-                expected.protocol is not None
-                and actual.protocol != expected.protocol
-            ):
+            if "protocol" in mismatched_fields:
                 failures.append(
                     f"protocol expected {expected.protocol}, "
                     f"got {actual.protocol}"
                 )
 
-            if (
-                expected.next_hop is not None
-                and actual.next_hop != expected.next_hop
-            ):
+            if "next_hop" in mismatched_fields:
                 failures.append(
                     f"next hop expected {expected.next_hop}, "
                     f"got {actual.next_hop}"
                 )
 
-            if (
-                expected.outgoing_interface is not None
-                and actual.outgoing_interface
-                != expected.outgoing_interface
-            ):
+            if "outgoing_interface" in mismatched_fields:
                 failures.append(
                     "outgoing interface expected "
                     f"{expected.outgoing_interface}, "
@@ -306,9 +314,23 @@ def validate_device_state(
 
             message = "; ".join(failures)
         else:
+            mismatched_field_set = {
+                field
+                for route in matching_routes
+                for field in _route_mismatched_fields(route, expected)
+            }
+            mismatched_fields = [
+                field
+                for field in (
+                    "protocol",
+                    "next_hop",
+                    "outgoing_interface",
+                )
+                if field in mismatched_field_set
+            ]
             message = (
                 f"Route {expected.network} exists, but none of the "
-                "matching entries satisfy the expectation"
+                "matching entries satisfies the complete expectation"
             )
 
         checks.append(
@@ -316,6 +338,8 @@ def validate_device_state(
                 name=f"route:{expected.network}",
                 status=ValidationStatus.FAIL,
                 message=message,
+                reason="mismatch",
+                mismatched_fields=mismatched_fields,
             )
         )
 

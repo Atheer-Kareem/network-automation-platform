@@ -26,6 +26,7 @@ class OspfDesiredState(BaseModel):
     area: int = 0
     networks: list[IPv4Network]
     neighbor_address: IPv4Address
+    learned_routes: list[IPv4Network] = Field(default_factory=list)
 
 
 class DeviceDesiredState(BaseModel):

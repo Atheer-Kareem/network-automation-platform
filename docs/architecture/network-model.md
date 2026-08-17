@@ -130,7 +130,11 @@ The expected peer address is explicit branch intent and is propagated through ve
 
 Cisco IOS adjacency-role suffixes such as `FULL/DR`, `FULL/BDR`, and `FULL/-` are normalized to `FULL` at the collector boundary, along with IOS interface-name normalization. Generic validation matches the expected neighbor by address and compares its interface and state. It does not validate router ID or reject unexpected additional neighbors in this increment.
 
-OSPF adjacency failures are validation-only and cannot produce targeted remediation. OSPF-learned route outcome validation remains the next routing increment.
+Branch intent explicitly requires the upstream prefix `10.200.0.1/32` inside the OSPF routing context. `core01` intentionally originates this representative service route from Loopback0. The protocol is inherited from the parent context, while the expected next hop is derived from the declared neighbor and the outgoing interface from the platform mapping for logical role `wan`.
+
+Validation requires the prefix through OSPF from `10.101.255.2` on `GigabitEthernet0/1`. Additional routes remain permitted, and administrative distance, metric, route subtype, and ECMP cardinality are not validated.
+
+OSPF adjacency and learned-route failures are validation-only, cannot produce targeted remediation, and block deployment before writes. Adjacency live CML acceptance is complete; learned-route outcome implementation is complete but its live CML acceptance remains pending.
 
 ## Environment Portability
 

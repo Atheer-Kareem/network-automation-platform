@@ -94,6 +94,16 @@ def _build_router_expectation(
             )
         )
 
+        routes.extend(
+            RouteExpectation(
+                network=network,
+                protocol="O",
+                next_hop=device.ospf.neighbor_address,
+                outgoing_interface=wan_interface,
+            )
+            for network in device.ospf.learned_routes
+        )
+
     return ValidationExpectation(
         interfaces=interfaces,
         routes=routes,
