@@ -1,3 +1,4 @@
+import traceback
 from ipaddress import IPv4Address, IPv4Network
 from pathlib import Path
 from unittest.mock import MagicMock, call, patch
@@ -493,10 +494,23 @@ def test_collect_device_state_wraps_connection_open_failures(
         collect_device_state(device, settings)
 
     message = str(exc_info.value)
+    formatted_traceback = "".join(
+        traceback.format_exception(
+            exc_info.type,
+            exc_info.value,
+            exc_info.tb,
+        )
+    )
     assert "br01-rtr01" in message
     assert expected_context in message
     assert configured_password not in message
+    assert configured_password not in formatted_traceback
     assert ("<redacted>" in message) is expects_redaction
+    assert (
+        "<redacted>" in formatted_traceback
+    ) is expects_redaction
+    assert "br01-rtr01" in formatted_traceback
+    assert expected_context in formatted_traceback
     connection.send_command.assert_not_called()
 
 def test_parse_ip_ospf_neighbor() -> None:

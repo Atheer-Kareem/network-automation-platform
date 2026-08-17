@@ -119,7 +119,7 @@ def collect_interface_state(
 
     except StateCollectionError:
         raise
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         error_message = _redact_connection_secrets(
             str(exc),
             settings,
@@ -127,7 +127,7 @@ def collect_interface_state(
         raise StateCollectionError(
             f"Unable to collect interface state from "
             f"{device.hostname}: {error_message}"
-        ) from exc
+        ) from None
 
     return parse_ip_interface_brief(parsed_output)
 
@@ -181,7 +181,7 @@ def collect_route_state(
 
     except StateCollectionError:
         raise
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         error_message = _redact_connection_secrets(
             str(exc),
             settings,
@@ -189,7 +189,7 @@ def collect_route_state(
         raise StateCollectionError(
             f"Unable to collect route state from "
             f"{device.hostname}: {error_message}"
-        ) from exc
+        ) from None
 
     return parse_ip_route(parsed_output)
 
@@ -276,7 +276,7 @@ def collect_device_state(
 
     except StateCollectionError:
         raise
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         error_message = _redact_connection_secrets(
             str(exc),
             settings,
@@ -284,7 +284,7 @@ def collect_device_state(
         raise StateCollectionError(
             f"Unable to collect device state from "
             f"{device.hostname}: {error_message}"
-        ) from exc
+        ) from None
 
     return DeviceState(
         hostname=device.hostname,
