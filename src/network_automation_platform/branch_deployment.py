@@ -209,7 +209,8 @@ def _build_branch_preflight(
         )
 
         remediation_commands = render_device_remediation(
-            remediation_plan
+            remediation_plan,
+            platform=desired_device.platform,
         )
 
         if not remediation_commands:

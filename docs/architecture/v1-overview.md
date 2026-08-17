@@ -201,6 +201,12 @@ VLAN name mismatch is eligible for automatic remediation. VLAN status mismatch i
 
 A validation check containing both configurable VLAN name drift and operational VLAN status drift is blocked rather than partially remediated.
 
+Targeted switchport remediation supports administrative-mode mismatch, access-VLAN mismatch, and trunk allowed-VLAN mismatch. Narrow VLAN-only drift is remediated without reapplying mode when the desired administrative mode already matches.
+
+Administrative-mode changes are complete desired switchport configuration units. Desired access mode renders `switchport mode access` and the desired access VLAN. Desired trunk mode renders any platform-profile-required encapsulation before `switchport mode trunk`, followed by the complete desired allowed-VLAN list. Encapsulation remains vendor-specific Cisco IOS rendering context rather than part of the vendor-neutral remediation model.
+
+Missing switchport state, `switchport_enabled` mismatch, native-VLAN mismatch, and mixed supported/unsupported switchport checks fail closed. `operational_mode` is collected but is not part of current desired-state validation. Empty desired allowed-VLAN semantics are not represented. IOS voice-VLAN semantics are not implemented; `voice_access` is an ordinary access port assigned wholly to the voice VLAN.
+
 IPv4 address and prefix-length mismatches are treated as one Cisco IOS configuration unit and therefore render the complete desired address and subnet mask.
 
 Operational interface status and protocol mismatches are intentionally excluded from automatic remediation.
@@ -488,13 +494,13 @@ Controlled deployment currently has the following limitations:
 - multi-device transaction semantics are not implemented;
 - unsupported drift blocks deployment rather than being partially remediated;
 - OSPF neighbor state is collected but OSPF adjacency expectations are not yet modelled in desired-state validation;
-- operational interface status/protocol drift, VLAN status drift, and switchport drift are not enabled for automatic remediation;
+- operational interface status/protocol drift, VLAN status drift, missing switchport state, `switchport_enabled` drift, native-VLAN drift, and mixed supported/unsupported switchport drift are not enabled for automatic remediation;
 - structured deployment audit/report artifacts are not yet complete; and
 - systematic failure-path acceptance coverage is still being expanded.
 
 These constraints are intentional at the current stage of V1.
 
-The remaining V1 work focuses on expanding supported remediation carefully, strengthening branch-wide safety, validating operational network outcomes, improving deployment evidence, and proving important failure paths before declaring V1 complete.
+The remaining V1 work focuses on routing and OSPF operational validation, improving deployment evidence, and proving important failure paths before declaring V1 complete.
 
 ## Out of Scope for V1
 

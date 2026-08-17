@@ -2,10 +2,12 @@ from network_automation_platform.remediation import (
     DeviceRemediationPlan,
     InterfaceRemediation,
     RemediationAction,
+    SwitchportRemediation,
     VlanRemediation,
 )
 from network_automation_platform.validation import (
     InterfaceExpectation,
+    SwitchportExpectation,
     ValidationCheck,
     ValidationExpectation,
     ValidationReport,
@@ -28,6 +30,13 @@ CONFIGURABLE_INTERFACE_MISMATCH_FIELDS = frozenset(
 CONFIGURABLE_VLAN_MISMATCH_FIELDS = frozenset(
     {
         "name",
+    }
+)
+CONFIGURABLE_SWITCHPORT_MISMATCH_FIELDS = frozenset(
+    {
+        "administrative_mode",
+        "access_vlan",
+        "allowed_vlans",
     }
 )
 
@@ -108,6 +117,99 @@ def _build_interface_mismatch_remediation(
         description=description,
         ipv4=ipv4,
         enabled=enabled,
+    )
+
+def _build_switchport_mismatch_remediation(
+    expected: SwitchportExpectation,
+    mismatched_fields: list[str],
+) -> SwitchportRemediation:
+    fields = set(mismatched_fields)
+    mode: str | None = None
+    access_vlan: int | None = None
+    allowed_vlans: list[int] | None = None
+
+    if "administrative_mode" in fields:
+        mode = expected.administrative_mode
+
+        if mode == "access":
+            if "allowed_vlans" in fields:
+                raise RemediationPlanningError(
+                    f"Cannot remediate switchport {expected.interface}: "
+                    "allowed VLAN mismatch is incompatible with "
+                    "desired access mode"
+                )
+
+            if expected.access_vlan is None:
+                raise RemediationPlanningError(
+                    f"Cannot remediate switchport {expected.interface}: "
+                    "desired access VLAN is missing"
+                )
+
+            access_vlan = expected.access_vlan
+        elif mode == "trunk":
+            if "access_vlan" in fields:
+                raise RemediationPlanningError(
+                    f"Cannot remediate switchport {expected.interface}: "
+                    "access VLAN mismatch is incompatible with "
+                    "desired trunk mode"
+                )
+
+            if not expected.allowed_vlans:
+                raise RemediationPlanningError(
+                    f"Cannot remediate switchport {expected.interface}: "
+                    "desired allowed VLANs are missing or empty"
+                )
+
+            allowed_vlans = expected.allowed_vlans
+        else:
+            raise RemediationPlanningError(
+                f"Cannot remediate switchport {expected.interface}: "
+                "desired administrative mode is missing or unsupported"
+            )
+    else:
+        if {"access_vlan", "allowed_vlans"}.issubset(fields):
+            raise RemediationPlanningError(
+                f"Cannot remediate switchport {expected.interface}: "
+                "access and allowed VLAN mismatches are ambiguous "
+                "without an administrative mode mismatch"
+            )
+
+        if "access_vlan" in fields:
+            if expected.administrative_mode != "access":
+                raise RemediationPlanningError(
+                    f"Cannot remediate switchport {expected.interface}: "
+                    "desired administrative mode is not access"
+                )
+
+            if expected.access_vlan is None:
+                raise RemediationPlanningError(
+                    f"Cannot remediate switchport {expected.interface}: "
+                    "desired access VLAN is missing"
+                )
+
+            access_vlan = expected.access_vlan
+
+        if "allowed_vlans" in fields:
+            if expected.administrative_mode != "trunk":
+                raise RemediationPlanningError(
+                    f"Cannot remediate switchport {expected.interface}: "
+                    "desired administrative mode is not trunk"
+                )
+
+            if not expected.allowed_vlans:
+                raise RemediationPlanningError(
+                    f"Cannot remediate switchport {expected.interface}: "
+                    "desired allowed VLANs are missing or empty"
+                )
+
+            allowed_vlans = expected.allowed_vlans
+
+    return SwitchportRemediation(
+        kind="switchport",
+        interface_name=expected.interface,
+        mode=mode,
+        access_vlan=access_vlan,
+        allowed_vlans=allowed_vlans,
     )
 
 def build_device_remediation_plan(
@@ -202,6 +304,41 @@ def build_device_remediation_plan(
                 )
             )
 
+        elif check.name.startswith("switchport:"):
+            interface_name = check.name.removeprefix(
+                "switchport:"
+            )
+
+            expected_switchport = next(
+                (
+                    switchport
+                    for switchport in expectation.switchports
+                    if switchport.interface == interface_name
+                ),
+                None,
+            )
+
+            if expected_switchport is None:
+                raise RemediationPlanningError(
+                    "Validation references switchport "
+                    f"{interface_name}, but it is not present "
+                    "in the validation expectation"
+                )
+
+            actions.append(
+                RemediationAction(
+                    description=(
+                        f"Remediate switchport {interface_name}"
+                    ),
+                    remediation=(
+                        _build_switchport_mismatch_remediation(
+                            expected_switchport,
+                            check.mismatched_fields,
+                        )
+                    ),
+                )
+            )
+
     return DeviceRemediationPlan(
         hostname=report.hostname,
         actions=actions,
@@ -239,6 +376,17 @@ def is_supported_remediation_check(
 
         return set(check.mismatched_fields).issubset(
             CONFIGURABLE_VLAN_MISMATCH_FIELDS
+        )
+
+    if check.name.startswith("switchport:"):
+        if check.reason != "mismatch":
+            return False
+
+        if not check.mismatched_fields:
+            return False
+
+        return set(check.mismatched_fields).issubset(
+            CONFIGURABLE_SWITCHPORT_MISMATCH_FIELDS
         )
 
     return False

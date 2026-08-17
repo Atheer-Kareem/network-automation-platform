@@ -42,7 +42,7 @@ The controlled deployment workflow has been validated against real lab drift fro
 
 V1 is not yet complete.
 
-Remaining V1 work focuses on expanding safe remediation, strengthening branch-wide preflight, validating routing and OSPF outcomes, improving deployment evidence, and systematically exercising failure paths.
+Remaining V1 work focuses on validating routing and OSPF outcomes, improving deployment evidence, and systematically exercising failure paths.
 
 Future development is tracked through a defined V1 → V1.5 → V2 roadmap.
 
@@ -376,8 +376,6 @@ V1 proves the core network automation architecture and controlled execution mode
 Remaining V1 work includes:
 
 ```text
-Switchport remediation
-        ↓
 Routing and OSPF operational validation
         ↓
 Deployment evidence and reporting
@@ -565,22 +563,27 @@ Missing managed VLAN
 VLAN name mismatch
 ```
 
+### Switchports
+
+```text
+Administrative mode mismatch
+Access VLAN mismatch
+Trunk allowed-VLAN mismatch
+```
+
+Administrative mode changes are rendered as complete desired switchport configuration units. Desired access mode renders `switchport mode access` followed by the desired access VLAN. Desired trunk mode renders any profile-required trunk encapsulation, `switchport mode trunk`, and the complete desired allowed-VLAN list. Narrow VLAN-only drift remains narrowly remediated when the administrative mode already matches.
+
+Missing switchport state, `switchport_enabled` mismatch, native-VLAN mismatch, and mixed supported/unsupported switchport drift remain blocked. `operational_mode` is collected but is not part of current desired-state validation. Empty desired allowed-VLAN semantics and IOS `switchport voice vlan` behavior are not implemented; the current `voice_access` port is an ordinary access port assigned wholly to the voice VLAN.
+
+Platform-specific trunk encapsulation remains inside the Cisco IOS rendering boundary and is not stored in the vendor-neutral remediation model.
+
 For IPv4 address or prefix-length drift, the platform renders the complete desired Cisco IOS `ip address <address> <mask>` configuration unit.
 
 Operational interface status/protocol mismatches and VLAN status mismatches may be detected by validation, but they are not eligible for automatic remediation.
 
 The remediation architecture is designed so additional types can be introduced without moving vendor-specific command generation into the core planning layer.
 
-Remaining planned V1 additions include:
-
-```text
-Switchport mode mismatch
-Access VLAN mismatch
-Voice VLAN mismatch
-Trunk allowed-VLAN mismatch
-```
-
-These are not considered supported deployment actions until explicitly implemented, tested, and validated against the representative environment.
+The next planned V1 implementation item is routing and OSPF operational validation. Live CML acceptance of targeted switchport remediation remains pending.
 
 ## V1 Safety Boundaries
 

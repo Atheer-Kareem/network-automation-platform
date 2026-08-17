@@ -462,7 +462,8 @@ def test_validate_device_state_reports_multiple_vlan_mismatches() -> None:
     assert "name expected USERS, got WRONG" in check.message
     assert "status expected active, got suspend" in check.message
 
-def test_validate_device_state_passes_switchport() -> None:
+def test_validate_device_state_passes_switchport_and_ignores_operational_mode(
+) -> None:
     state = DeviceState(
         hostname="br01-sw01",
         interfaces=[],
@@ -472,7 +473,7 @@ def test_validate_device_state_passes_switchport() -> None:
                 interface="GigabitEthernet0/2",
                 switchport_enabled=True,
                 administrative_mode="access",
-                operational_mode="access",
+                operational_mode="trunk",
                 access_vlan=10,
             )
         ],
@@ -529,6 +530,8 @@ def test_validate_device_state_fails_switchport_mismatch() -> None:
     assert len(report.checks) == 1
     assert report.checks[0].name == "switchport:GigabitEthernet0/2"
     assert report.checks[0].status == ValidationStatus.FAIL
+    assert report.checks[0].reason == "mismatch"
+    assert report.checks[0].mismatched_fields == ["access_vlan"]
     assert "access VLAN expected 10, got 20" in report.checks[0].message
 
 def test_validate_device_state_fails_missing_switchport() -> None:
@@ -555,10 +558,56 @@ def test_validate_device_state_fails_missing_switchport() -> None:
     assert len(report.checks) == 1
     assert report.checks[0].name == "switchport:GigabitEthernet0/1"
     assert report.checks[0].status == ValidationStatus.FAIL
+    assert report.checks[0].reason == "missing"
+    assert report.checks[0].mismatched_fields == []
     assert (
         report.checks[0].message
         == "Switchport GigabitEthernet0/1 is missing"
     )
+
+def test_validate_device_state_reports_all_switchport_mismatches() -> None:
+    state = DeviceState(
+        hostname="br01-sw01",
+        interfaces=[],
+        routes=[],
+        switchports=[
+            SwitchportState(
+                interface="GigabitEthernet0/1",
+                switchport_enabled=False,
+                administrative_mode="access",
+                operational_mode="access",
+                access_vlan=20,
+                native_vlan=1,
+                allowed_vlans=[10, 20],
+            )
+        ],
+    )
+
+    expectation = ValidationExpectation(
+        switchports=[
+            SwitchportExpectation(
+                interface="GigabitEthernet0/1",
+                switchport_enabled=True,
+                administrative_mode="trunk",
+                access_vlan=10,
+                native_vlan=99,
+                allowed_vlans=[10, 20, 99],
+            )
+        ]
+    )
+
+    report = validate_device_state(state, expectation)
+
+    check = report.checks[0]
+    assert check.status == ValidationStatus.FAIL
+    assert check.reason == "mismatch"
+    assert check.mismatched_fields == [
+        "switchport_enabled",
+        "administrative_mode",
+        "access_vlan",
+        "native_vlan",
+        "allowed_vlans",
+    ]
 
 def test_validate_device_state_compares_allowed_vlans_without_order() -> None:
     state = DeviceState(

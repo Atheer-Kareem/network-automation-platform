@@ -1,24 +1,37 @@
 from ipaddress import IPv4Address
 
+import pytest
+
 from network_automation_platform.cisco_ios_remediation import (
     render_device_remediation,
     render_interface_remediation,
+    render_switchport_remediation,
+)
+from network_automation_platform.device_state import (
+    DeviceState,
+    SwitchportState,
+)
+from network_automation_platform.platform_profiles import (
+    SwitchPlatformProfile,
 )
 from network_automation_platform.remediation import (
     DeviceRemediationPlan,
     InterfaceRemediation,
     RemediationAction,
+    SwitchportRemediation,
 )
 from network_automation_platform.remediation_planner import (
     build_device_remediation_plan,
 )
 from network_automation_platform.validation import (
     InterfaceExpectation,
+    SwitchportExpectation,
     ValidationCheck,
     ValidationExpectation,
     ValidationReport,
     ValidationStatus,
     VlanExpectation,
+    validate_device_state,
 )
 
 
@@ -304,6 +317,223 @@ def test_admin_disable_mismatch_renders_only_shutdown_command() -> None:
     assert commands == [
         "interface GigabitEthernet0/1",
         "shutdown",
+    ]
+
+def test_render_narrow_access_vlan_switchport_remediation() -> None:
+    remediation = SwitchportRemediation(
+        kind="switchport",
+        interface_name="GigabitEthernet0/2",
+        access_vlan=10,
+    )
+
+    commands = render_switchport_remediation(
+        remediation,
+        SwitchPlatformProfile(interface_map={}),
+    )
+
+    assert commands == [
+        "interface GigabitEthernet0/2",
+        "switchport access vlan 10",
+    ]
+
+def test_render_narrow_allowed_vlans_switchport_remediation() -> None:
+    remediation = SwitchportRemediation(
+        kind="switchport",
+        interface_name="GigabitEthernet0/1",
+        allowed_vlans=[99, 10, 20],
+    )
+
+    commands = render_switchport_remediation(
+        remediation,
+        SwitchPlatformProfile(
+            interface_map={},
+            trunk_encapsulation="dot1q",
+        ),
+    )
+
+    assert commands == [
+        "interface GigabitEthernet0/1",
+        "switchport trunk allowed vlan 99,10,20",
+    ]
+
+def test_render_complete_access_switchport_remediation() -> None:
+    remediation = SwitchportRemediation(
+        kind="switchport",
+        interface_name="GigabitEthernet0/2",
+        mode="access",
+        access_vlan=10,
+    )
+
+    commands = render_switchport_remediation(
+        remediation,
+        SwitchPlatformProfile(interface_map={}),
+    )
+
+    assert commands == [
+        "interface GigabitEthernet0/2",
+        "switchport mode access",
+        "switchport access vlan 10",
+    ]
+
+def test_render_complete_trunk_switchport_remediation() -> None:
+    plan = DeviceRemediationPlan(
+        hostname="br01-sw01",
+        actions=[
+            RemediationAction(
+                description="Remediate switchport GigabitEthernet0/1",
+                remediation=SwitchportRemediation(
+                    kind="switchport",
+                    interface_name="GigabitEthernet0/1",
+                    mode="trunk",
+                    allowed_vlans=[99, 10, 20],
+                ),
+            )
+        ],
+    )
+
+    commands = render_device_remediation(
+        plan,
+        platform="cisco_iosv_l2",
+    )
+
+    assert commands == [
+        "interface GigabitEthernet0/1",
+        "switchport trunk encapsulation dot1q",
+        "switchport mode trunk",
+        "switchport trunk allowed vlan 99,10,20",
+    ]
+
+def test_render_trunk_omits_unspecified_encapsulation() -> None:
+    remediation = SwitchportRemediation(
+        kind="switchport",
+        interface_name="GigabitEthernet0/1",
+        mode="trunk",
+        allowed_vlans=[10, 20, 99],
+    )
+
+    commands = render_switchport_remediation(
+        remediation,
+        SwitchPlatformProfile(interface_map={}),
+    )
+
+    assert commands == [
+        "interface GigabitEthernet0/1",
+        "switchport mode trunk",
+        "switchport trunk allowed vlan 10,20,99",
+    ]
+
+def test_switchport_remediation_rejects_unsupported_platform() -> None:
+    plan = DeviceRemediationPlan(
+        hostname="br01-sw01",
+        actions=[
+            RemediationAction(
+                description="Remediate switchport GigabitEthernet0/1",
+                remediation=SwitchportRemediation(
+                    kind="switchport",
+                    interface_name="GigabitEthernet0/1",
+                    mode="trunk",
+                    allowed_vlans=[10, 20, 99],
+                ),
+            )
+        ],
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Unsupported switch platform for remediation: unknown",
+    ):
+        render_device_remediation(plan, platform="unknown")
+
+def test_access_vlan_drift_validates_plans_and_renders_narrow_commands(
+) -> None:
+    state = DeviceState(
+        hostname="br01-sw01",
+        interfaces=[],
+        routes=[],
+        switchports=[
+            SwitchportState(
+                interface="GigabitEthernet0/2",
+                switchport_enabled=True,
+                administrative_mode="access",
+                operational_mode="access",
+                access_vlan=20,
+            )
+        ],
+    )
+    expectation = ValidationExpectation(
+        switchports=[
+            SwitchportExpectation(
+                interface="GigabitEthernet0/2",
+                switchport_enabled=True,
+                administrative_mode="access",
+                access_vlan=10,
+            )
+        ]
+    )
+
+    report = validate_device_state(state, expectation)
+    check = report.checks[0]
+    assert check.reason == "mismatch"
+    assert check.mismatched_fields == ["access_vlan"]
+
+    plan = build_device_remediation_plan(expectation, report)
+    commands = render_device_remediation(
+        plan,
+        platform="cisco_iosv_l2",
+    )
+
+    assert commands == [
+        "interface GigabitEthernet0/2",
+        "switchport access vlan 10",
+    ]
+
+def test_access_to_trunk_drift_validates_plans_and_renders_complete_unit(
+) -> None:
+    state = DeviceState(
+        hostname="br01-sw01",
+        interfaces=[],
+        routes=[],
+        switchports=[
+            SwitchportState(
+                interface="GigabitEthernet0/1",
+                switchport_enabled=True,
+                administrative_mode="access",
+                operational_mode="access",
+                access_vlan=1,
+                allowed_vlans=[],
+            )
+        ],
+    )
+    expectation = ValidationExpectation(
+        switchports=[
+            SwitchportExpectation(
+                interface="GigabitEthernet0/1",
+                switchport_enabled=True,
+                administrative_mode="trunk",
+                allowed_vlans=[10, 20, 99],
+            )
+        ]
+    )
+
+    report = validate_device_state(state, expectation)
+    check = report.checks[0]
+    assert check.reason == "mismatch"
+    assert check.mismatched_fields == [
+        "administrative_mode",
+        "allowed_vlans",
+    ]
+
+    plan = build_device_remediation_plan(expectation, report)
+    commands = render_device_remediation(
+        plan,
+        platform="cisco_iosv_l2",
+    )
+
+    assert commands == [
+        "interface GigabitEthernet0/1",
+        "switchport trunk encapsulation dot1q",
+        "switchport mode trunk",
+        "switchport trunk allowed vlan 10,20,99",
     ]
 
 def test_missing_vlan_drift_renders_targeted_commands() -> None:
