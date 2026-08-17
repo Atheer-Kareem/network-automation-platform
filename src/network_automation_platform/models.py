@@ -52,7 +52,7 @@ class BranchIntent(BaseModel):
     routing: Routing
 
     @model_validator(mode="after")
-    def validate_management_addresses(self) -> "BranchIntent":
+    def validate_addressing(self) -> "BranchIntent":
         management_network = self.networks.management.prefix
 
         for device in (
@@ -68,12 +68,34 @@ class BranchIntent(BaseModel):
 
         wan_network = self.wan.transit_prefix
         neighbor_address = self.routing.neighbor_address
+
+        if wan_network.prefixlen == 32:
+            raise ValueError(
+                f"WAN transit network {wan_network} cannot provide "
+                "distinct branch-router and OSPF neighbor endpoints"
+            )
+
         router_wan_address = wan_network.network_address + 1
+
+        if router_wan_address not in wan_network:
+            raise ValueError(
+                f"Derived branch router WAN address {router_wan_address} "
+                f"is not a usable endpoint in {wan_network}"
+            )
 
         if neighbor_address not in wan_network:
             raise ValueError(
                 f"OSPF neighbor address {neighbor_address} is not within "
                 f"WAN transit network {wan_network}"
+            )
+
+        if wan_network.prefixlen < 31 and neighbor_address in (
+            wan_network.network_address,
+            wan_network.broadcast_address,
+        ):
+            raise ValueError(
+                f"OSPF neighbor address {neighbor_address} is not a "
+                f"usable endpoint in WAN transit network {wan_network}"
             )
 
         if neighbor_address == router_wan_address:
