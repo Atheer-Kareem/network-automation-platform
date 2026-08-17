@@ -1,4 +1,4 @@
-from ipaddress import IPv4Address
+from ipaddress import IPv4Address, IPv4Network
 
 import pytest
 
@@ -156,6 +156,8 @@ def test_validate_device_state_fails_missing_route() -> None:
     assert report.checks[0].message == "Interface FastEthernet0/0 matches expectation"
     assert report.checks[1].status == ValidationStatus.FAIL
     assert report.checks[1].message == f"Route {TEST_OOB_NETWORK} is missing"
+    assert report.checks[1].reason == "missing"
+    assert report.checks[1].mismatched_fields == []
 
 def test_validate_device_state_fails_wrong_route_protocol() -> None:
     state = DeviceState(
@@ -204,6 +206,8 @@ def test_validate_device_state_fails_wrong_route_protocol() -> None:
     assert report.checks[0].message == "Interface FastEthernet0/0 matches expectation"
     assert report.checks[1].status == ValidationStatus.FAIL
     assert "protocol expected C, got O" in report.checks[1].message
+    assert report.checks[1].reason == "mismatch"
+    assert report.checks[1].mismatched_fields == ["protocol"]
 
 def test_validate_device_state_passes() -> None:
     state = DeviceState(
@@ -292,6 +296,217 @@ def test_validate_device_state_passes_when_one_matching_route_satisfies_expectat
 
     assert report.passed is True
     assert report.checks[0].status == ValidationStatus.PASS
+
+
+def test_expected_ospf_learned_route_passes() -> None:
+    network = IPv4Network("10.200.0.1/32")
+    state = DeviceState(
+        hostname="br01-rtr01",
+        interfaces=[],
+        routes=[
+            RouteState(
+                protocol="O",
+                network=network,
+                next_hop=IPv4Address("10.101.255.2"),
+                outgoing_interface="GigabitEthernet0/1",
+            )
+        ],
+    )
+    expectation = ValidationExpectation(
+        routes=[
+            RouteExpectation(
+                network=network,
+                protocol="O",
+                next_hop=IPv4Address("10.101.255.2"),
+                outgoing_interface="GigabitEthernet0/1",
+            )
+        ]
+    )
+
+    report = validate_device_state(state, expectation)
+
+    assert report.passed is True
+    assert report.checks[0].name == "route:10.200.0.1/32"
+    assert report.checks[0].status == ValidationStatus.PASS
+
+
+@pytest.mark.parametrize(
+    ("actual", "expected_fields"),
+    [
+        pytest.param(
+            RouteState(
+                protocol="O",
+                network=IPv4Network("10.200.0.1/32"),
+                next_hop=IPv4Address("10.101.255.3"),
+                outgoing_interface="GigabitEthernet0/1",
+            ),
+            ["next_hop"],
+            id="next-hop",
+        ),
+        pytest.param(
+            RouteState(
+                protocol="O",
+                network=IPv4Network("10.200.0.1/32"),
+                next_hop=IPv4Address("10.101.255.2"),
+                outgoing_interface="GigabitEthernet0/2",
+            ),
+            ["outgoing_interface"],
+            id="outgoing-interface",
+        ),
+        pytest.param(
+            RouteState(
+                protocol="S",
+                network=IPv4Network("10.200.0.1/32"),
+                next_hop=IPv4Address("10.101.255.3"),
+                outgoing_interface="GigabitEthernet0/2",
+            ),
+            ["protocol", "next_hop", "outgoing_interface"],
+            id="combined",
+        ),
+    ],
+)
+def test_validate_learned_route_reports_structured_mismatches(
+    actual: RouteState,
+    expected_fields: list[str],
+) -> None:
+    expectation = ValidationExpectation(
+        routes=[
+            RouteExpectation(
+                network=IPv4Network("10.200.0.1/32"),
+                protocol="O",
+                next_hop=IPv4Address("10.101.255.2"),
+                outgoing_interface="GigabitEthernet0/1",
+            )
+        ]
+    )
+
+    report = validate_device_state(
+        DeviceState(
+            hostname="br01-rtr01",
+            interfaces=[],
+            routes=[actual],
+        ),
+        expectation,
+    )
+
+    assert report.passed is False
+    assert report.checks[0].reason == "mismatch"
+    assert report.checks[0].mismatched_fields == expected_fields
+
+
+def test_multiple_learned_route_candidates_report_aggregate_mismatches() -> None:
+    network = IPv4Network("10.200.0.1/32")
+    state = DeviceState(
+        hostname="br01-rtr01",
+        interfaces=[],
+        routes=[
+            RouteState(
+                protocol="S",
+                network=network,
+                next_hop=IPv4Address("10.101.255.2"),
+                outgoing_interface="GigabitEthernet0/2",
+            ),
+            RouteState(
+                protocol="O",
+                network=network,
+                next_hop=IPv4Address("10.101.255.3"),
+                outgoing_interface="GigabitEthernet0/1",
+            ),
+        ],
+    )
+    expectation = ValidationExpectation(
+        routes=[
+            RouteExpectation(
+                network=network,
+                protocol="O",
+                next_hop=IPv4Address("10.101.255.2"),
+                outgoing_interface="GigabitEthernet0/1",
+            )
+        ]
+    )
+
+    report = validate_device_state(state, expectation)
+
+    assert len(report.checks) == 1
+    assert report.checks[0].status == ValidationStatus.FAIL
+    assert report.checks[0].reason == "mismatch"
+    assert report.checks[0].mismatched_fields == [
+        "protocol",
+        "next_hop",
+        "outgoing_interface",
+    ]
+    assert (
+        "none of the matching entries satisfies the complete expectation"
+        in report.checks[0].message
+    )
+
+
+def test_unexpected_additional_ospf_route_is_ignored() -> None:
+    expected_network = IPv4Network("10.200.0.1/32")
+    state = DeviceState(
+        hostname="br01-rtr01",
+        interfaces=[],
+        routes=[
+            RouteState(
+                protocol="O",
+                network=expected_network,
+                next_hop=IPv4Address("10.101.255.2"),
+                outgoing_interface="GigabitEthernet0/1",
+            ),
+            RouteState(
+                protocol="O",
+                network=IPv4Network("10.200.0.2/32"),
+                next_hop=IPv4Address("10.101.255.2"),
+                outgoing_interface="GigabitEthernet0/1",
+            ),
+        ],
+    )
+    expectation = ValidationExpectation(
+        routes=[
+            RouteExpectation(
+                network=expected_network,
+                protocol="O",
+                next_hop=IPv4Address("10.101.255.2"),
+                outgoing_interface="GigabitEthernet0/1",
+            )
+        ]
+    )
+
+    assert validate_device_state(state, expectation).passed is True
+
+
+def test_full_ospf_neighbor_does_not_mask_missing_learned_route() -> None:
+    state = DeviceState(
+        hostname="br01-rtr01",
+        interfaces=[],
+        routes=[],
+        ospf_neighbors=[
+            OspfNeighborState(
+                neighbor_id=IPv4Address("10.255.0.1"),
+                address=IPv4Address("10.101.255.2"),
+                interface="GigabitEthernet0/1",
+                state="FULL",
+            )
+        ],
+    )
+    expectation = ValidationExpectation(
+        routes=[RouteExpectation(network=IPv4Network("10.200.0.1/32"))],
+        ospf_neighbors=[
+            OspfNeighborExpectation(
+                address=IPv4Address("10.101.255.2"),
+                interface="GigabitEthernet0/1",
+                state="FULL",
+            )
+        ],
+    )
+
+    report = validate_device_state(state, expectation)
+
+    assert report.passed is False
+    assert report.checks[0].name == "route:10.200.0.1/32"
+    assert report.checks[0].status == ValidationStatus.FAIL
+    assert report.checks[1].name == "ospf_neighbor:10.101.255.2"
+    assert report.checks[1].status == ValidationStatus.PASS
 
 def test_validate_device_state_passes_vlan() -> None:
     state = DeviceState(

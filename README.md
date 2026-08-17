@@ -42,7 +42,7 @@ The controlled deployment workflow has been validated against real lab drift fro
 
 V1 is not yet complete.
 
-Remaining V1 work focuses on validating OSPF-learned route outcomes, improving deployment evidence, and systematically exercising failure paths.
+Remaining V1 work focuses on live acceptance of OSPF-learned route outcomes, improving deployment evidence, and systematically exercising failure paths.
 
 Future development is tracked through a defined V1 → V1.5 → V2 roadmap.
 
@@ -56,6 +56,7 @@ Future development is tracked through a defined V1 → V1.5 → V2 roadmap.
 - Interface validation
 - Route validation
 - Expected OSPF adjacency validation
+- Required OSPF-learned route outcome validation
 - VLAN validation
 - Switchport validation
 - Branch-level validation workflow
@@ -377,7 +378,7 @@ V1 proves the core network automation architecture and controlled execution mode
 Remaining V1 work includes:
 
 ```text
-OSPF-learned route outcome validation
+OSPF-learned route outcome live acceptance
         ↓
 Deployment evidence and reporting
         ↓
@@ -584,9 +585,9 @@ Operational interface status/protocol mismatches and VLAN status mismatches may 
 
 The remediation architecture is designed so additional types can be introduced without moving vendor-specific command generation into the core planning layer.
 
-Expected OSPF adjacency is validated by explicit neighbor address, mapped WAN interface, and normalized `FULL` state. OSPF operational failures are not remediable and therefore block deployment rather than producing configuration commands. Router-ID validation, rejection of unexpected additional neighbors, and OSPF-learned route outcome validation are not included in this increment.
+Expected OSPF adjacency is validated by explicit neighbor address, mapped WAN interface, and normalized `FULL` state. Branch intent also declares required learned prefixes inside the OSPF routing context. For the representative branch, `10.200.0.1/32` must be learned with IOS protocol `O`, the expected peer as next hop, and the platform-mapped WAN interface. The next hop and physical interface are derived rather than duplicated in intent.
 
-The next planned V1 implementation item is OSPF-learned route outcome validation. Live CML acceptance of targeted switchport remediation has been completed; live CML acceptance of OSPF adjacency validation remains outstanding.
+Additional routes remain permitted. Administrative distance, metric, route subtype, and ECMP cardinality are not validated. OSPF adjacency and learned-route failures are not remediable and therefore block deployment rather than producing configuration commands. Live CML acceptance of OSPF adjacency validation is complete; live failure-path acceptance of learned-route outcome validation remains pending.
 
 ## V1 Safety Boundaries
 

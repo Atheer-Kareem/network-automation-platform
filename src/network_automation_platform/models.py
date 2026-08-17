@@ -42,6 +42,14 @@ class Routing(BaseModel):
     protocol: Literal["ospf"]
     area: int = Field(ge=0)
     neighbor_address: IPv4Address
+    learned_routes: list[IPv4Network] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_learned_routes(self) -> "Routing":
+        if len(self.learned_routes) != len(set(self.learned_routes)):
+            raise ValueError("learned_routes contains duplicate prefixes")
+
+        return self
 
 
 class BranchIntent(BaseModel):

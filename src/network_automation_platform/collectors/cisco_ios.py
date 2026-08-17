@@ -129,13 +129,18 @@ def parse_ip_route(
     for route in parsed_output:
         prefix = f"{route['network']}/{route['prefix_length']}"
         next_hop = route.get("nexthop_ip")
+        next_hop_interface = route.get("nexthop_if")
 
         routes.append(
             RouteState(
                 protocol=route["protocol"],
                 network=prefix,
                 next_hop=None if not next_hop else next_hop,
-                outgoing_interface=route.get("nexthop_if") or None,
+                outgoing_interface=(
+                    normalize_ios_interface_name(next_hop_interface)
+                    if next_hop_interface
+                    else None
+                ),
             )
         )
 

@@ -213,6 +213,42 @@ def test_parse_ip_route_rejects_empty_output() -> None:
     ):
         parse_ip_route([])
 
+
+@pytest.mark.parametrize(
+    ("route_type", "interface", "expected_interface"),
+    [
+        pytest.param("", "Gi0/1", "GigabitEthernet0/1", id="intra-area"),
+        pytest.param("IA", "Gi0/1", "GigabitEthernet0/1", id="inter-area"),
+        pytest.param("E1", "Gi0/1", "GigabitEthernet0/1", id="external-1"),
+        pytest.param("E2", "", None, id="external-2-empty-interface"),
+    ],
+)
+def test_parse_ip_route_keeps_ospf_protocol_and_normalizes_interface(
+    route_type: str,
+    interface: str,
+    expected_interface: str | None,
+) -> None:
+    routes = parse_ip_route(
+        [
+            {
+                "protocol": "O",
+                "type": route_type,
+                "network": "10.200.0.1",
+                "prefix_length": "32",
+                "distance": "110",
+                "metric": "2",
+                "nexthop_ip": "10.101.255.2",
+                "nexthop_if": interface,
+            }
+        ]
+    )
+
+    assert len(routes) == 1
+    assert routes[0].protocol == "O"
+    assert routes[0].network == IPv4Network("10.200.0.1/32")
+    assert routes[0].next_hop == IPv4Address("10.101.255.2")
+    assert routes[0].outgoing_interface == expected_interface
+
 def test_collect_interface_state() -> None:
     device = InventoryDevice(
         hostname="br01-rtr01",

@@ -469,6 +469,7 @@ The target V1 scope includes:
 - targeted VLAN remediation;
 - targeted switchport remediation;
 - expected OSPF adjacency validation;
+- required OSPF-learned route outcome validation;
 - structured deployment evidence and reporting;
 - systematic failure-path validation;
 - representative CML acceptance testing;
@@ -494,6 +495,7 @@ Controlled deployment currently has the following limitations:
 - multi-device transaction semantics are not implemented;
 - unsupported drift blocks deployment rather than being partially remediated;
 - expected OSPF adjacency is matched by explicit neighbor address and validated for mapped WAN interface and normalized `FULL` state, but router ID and unexpected additional neighbors are not validated;
+- branch intent explicitly requires the representative upstream route `10.200.0.1/32` inside the OSPF context; validation derives its expected peer next hop and mapped WAN interface, permits additional routes, and does not validate administrative distance, metric, route subtype, or ECMP cardinality;
 - OSPF operational failures are validation-only and are not enabled for automatic remediation;
 - operational interface status/protocol drift, VLAN status drift, missing switchport state, `switchport_enabled` drift, native-VLAN drift, and mixed supported/unsupported switchport drift are not enabled for automatic remediation;
 - structured deployment audit/report artifacts are not yet complete; and
@@ -501,7 +503,7 @@ Controlled deployment currently has the following limitations:
 
 These constraints are intentional at the current stage of V1.
 
-The remaining V1 work focuses on OSPF-learned route outcome validation, improving deployment evidence, and proving important failure paths before declaring V1 complete. Live CML acceptance of OSPF adjacency validation remains outstanding.
+The remaining V1 work focuses on live CML acceptance of OSPF-learned route outcome validation, improving deployment evidence, and proving important failure paths before declaring V1 complete. Live CML acceptance of OSPF adjacency validation is complete; route-outcome failure-path acceptance remains pending.
 
 ## Out of Scope for V1
 

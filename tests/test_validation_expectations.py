@@ -6,10 +6,15 @@ import pytest
 from network_automation_platform.desired_state import (
     DeviceDesiredState,
     InterfaceDesiredState,
+    OspfDesiredState,
     VlanDesiredState,
 )
 from network_automation_platform.models import load_branch_intent
 from network_automation_platform.planning import build_branch_desired_state
+from network_automation_platform.platform_profiles import (
+    ROUTER_PLATFORM_PROFILES,
+    RouterPlatformProfile,
+)
 from network_automation_platform.validation_expectations import (
     ValidationExpectationError,
     build_desired_state_expectation,
@@ -137,6 +142,45 @@ def test_build_expectation_from_branch_desired_state() -> None:
     assert neighbor.address == intent.routing.neighbor_address
     assert neighbor.interface == "GigabitEthernet0/1"
     assert neighbor.state == "FULL"
+
+    learned_route = next(
+        route
+        for route in expectation.routes
+        if route.network == IPv4Network("10.200.0.1/32")
+    )
+    assert learned_route.protocol == "O"
+    assert learned_route.next_hop == intent.routing.neighbor_address
+    assert learned_route.outgoing_interface == "GigabitEthernet0/1"
+
+
+def test_build_ospf_expectation_requires_wan_mapping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    platform = "test_router_without_wan"
+    monkeypatch.setitem(
+        ROUTER_PLATFORM_PROFILES,
+        platform,
+        RouterPlatformProfile(interface_map={}),
+    )
+    device = DeviceDesiredState(
+        hostname="br01-rtr01",
+        role="branch_router",
+        platform=platform,
+        ospf=OspfDesiredState(
+            networks=[],
+            neighbor_address="10.101.255.2",
+            learned_routes=[IPv4Network("10.200.0.1/32")],
+        ),
+    )
+
+    with pytest.raises(
+        ValidationExpectationError,
+        match=(
+            "Missing interface mapping for wan on platform "
+            "test_router_without_wan"
+        ),
+    ):
+        build_desired_state_expectation(device)
 
 def test_build_switch_validation_expectation() -> None:
     device = DeviceDesiredState(
