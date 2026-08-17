@@ -161,16 +161,51 @@ def test_deploy_branch_skips_compliant_devices() -> None:
 
 def test_deploy_branch_initial_collection_failure_prevents_approval_and_write(
 ) -> None:
+    inventory = DeviceInventory(
+        devices=[
+            make_inventory_device(
+                hostname="br01-rtr01",
+                host=str(TEST_ROUTER_IP),
+            ),
+            make_inventory_device(
+                hostname="br01-sw01",
+                host=str(TEST_SWITCH_IP),
+            ),
+        ]
+    )
+    router_state = DeviceState(
+        hostname="br01-rtr01",
+        interfaces=[],
+        routes=[],
+    )
+    router_report = ValidationReport(
+        hostname="br01-rtr01",
+        checks=[
+            ValidationCheck(
+                name="router-check",
+                status=ValidationStatus.PASS,
+                message="Router matches expectation",
+            )
+        ],
+    )
     approve_mock = Mock()
 
     with (
         patch(
             "network_automation_platform.branch_deployment."
-            "_build_branch_preflight",
-            side_effect=StateCollectionError(
-                "Unable to collect device state from br01-rtr01: "
-                "connection refused"
-            ),
+            "collect_device_state",
+            side_effect=[
+                router_state,
+                StateCollectionError(
+                    "Unable to collect device state from br01-sw01: "
+                    "connection refused"
+                ),
+            ],
+        ) as collect_mock,
+        patch(
+            "network_automation_platform.branch_deployment."
+            "validate_device_against_desired_state",
+            return_value=router_report,
         ),
         patch(
             "network_automation_platform.branch_deployment."
@@ -181,7 +216,7 @@ def test_deploy_branch_initial_collection_failure_prevents_approval_and_write(
         deploy_branch(
             "branch-01",
             intent_path=Path("intent/branches/branch-01.yaml"),
-            inventory=make_lab_inventory(),
+            inventory=inventory,
             settings=ConnectionSettings(
                 username="netdevops",
                 password=SecretStr("test"),
@@ -191,6 +226,7 @@ def test_deploy_branch_initial_collection_failure_prevents_approval_and_write(
             approve=approve_mock,
         )
 
+    assert collect_mock.call_count == 2
     approve_mock.assert_not_called()
     deploy_mock.assert_not_called()
 

@@ -21,6 +21,17 @@ class StateParseError(ValueError):
     pass
 
 
+def _redact_connection_secrets(
+    message: str,
+    settings: ConnectionSettings,
+) -> str:
+    password = settings.password.get_secret_value()
+    if not password:
+        return message
+
+    return message.replace(password, "<redacted>")
+
+
 def parse_ip_interface_brief(
     parsed_output: list[dict[str, Any]],
 ) -> list[InterfaceState]:
@@ -109,9 +120,13 @@ def collect_interface_state(
     except StateCollectionError:
         raise
     except Exception as exc:
+        error_message = _redact_connection_secrets(
+            str(exc),
+            settings,
+        )
         raise StateCollectionError(
             f"Unable to collect interface state from "
-            f"{device.hostname}: {exc}"
+            f"{device.hostname}: {error_message}"
         ) from exc
 
     return parse_ip_interface_brief(parsed_output)
@@ -167,9 +182,13 @@ def collect_route_state(
     except StateCollectionError:
         raise
     except Exception as exc:
+        error_message = _redact_connection_secrets(
+            str(exc),
+            settings,
+        )
         raise StateCollectionError(
             f"Unable to collect route state from "
-            f"{device.hostname}: {exc}"
+            f"{device.hostname}: {error_message}"
         ) from exc
 
     return parse_ip_route(parsed_output)
@@ -258,9 +277,13 @@ def collect_device_state(
     except StateCollectionError:
         raise
     except Exception as exc:
+        error_message = _redact_connection_secrets(
+            str(exc),
+            settings,
+        )
         raise StateCollectionError(
             f"Unable to collect device state from "
-            f"{device.hostname}: {exc}"
+            f"{device.hostname}: {error_message}"
         ) from exc
 
     return DeviceState(

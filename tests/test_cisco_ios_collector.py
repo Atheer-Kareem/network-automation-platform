@@ -442,24 +442,32 @@ def test_collect_device_state() -> None:
 
 
 @pytest.mark.parametrize(
-    "connection_error",
+    ("error_message", "expected_context", "expects_redaction"),
     [
         pytest.param(
-            RuntimeError("connection refused"),
+            "connection refused",
+            "connection refused",
+            False,
             id="unreachable-device",
         ),
         pytest.param(
-            RuntimeError("authentication failed"),
+            "authentication failed using credential-must-not-appear",
+            "authentication failed using",
+            True,
             id="authentication-failure",
         ),
         pytest.param(
-            RuntimeError("host key verification failed"),
+            "host key verification failed",
+            "host key verification failed",
+            False,
             id="ssh-host-key-failure",
         ),
     ],
 )
 def test_collect_device_state_wraps_connection_open_failures(
-    connection_error: RuntimeError,
+    error_message: str,
+    expected_context: str,
+    expects_redaction: bool,
 ) -> None:
     device = InventoryDevice(
         hostname="br01-rtr01",
@@ -475,7 +483,7 @@ def test_collect_device_state_wraps_connection_open_failures(
         ssh_known_hosts_file=Path("inventory/ssh/known_hosts"),
     )
     connection = MagicMock()
-    connection.__enter__.side_effect = connection_error
+    connection.__enter__.side_effect = RuntimeError(error_message)
 
     with patch(
         "network_automation_platform.collectors.cisco_ios."
@@ -486,8 +494,9 @@ def test_collect_device_state_wraps_connection_open_failures(
 
     message = str(exc_info.value)
     assert "br01-rtr01" in message
-    assert str(connection_error) in message
+    assert expected_context in message
     assert configured_password not in message
+    assert ("<redacted>" in message) is expects_redaction
     connection.send_command.assert_not_called()
 
 def test_parse_ip_ospf_neighbor() -> None:
