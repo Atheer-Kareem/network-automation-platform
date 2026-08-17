@@ -188,9 +188,22 @@ administrative-state mismatch
 
 Interface mismatches carry machine-readable `mismatched_fields` metadata so remediation policy does not depend on parsing human-readable validation messages.
 
+Targeted VLAN remediation currently supports:
+
+```text
+missing managed VLAN
+VLAN name mismatch
+```
+
+VLAN failures use the same structured validation metadata as interface failures. Missing VLANs are classified with `reason="missing"`, while existing VLAN configuration drift uses `reason="mismatch"` with machine-readable `mismatched_fields`.
+
+VLAN name mismatch is eligible for automatic remediation. VLAN status mismatch is treated as operational drift and is intentionally excluded from automatic remediation.
+
+A validation check containing both configurable VLAN name drift and operational VLAN status drift is blocked rather than partially remediated.
+
 IPv4 address and prefix-length mismatches are treated as one Cisco IOS configuration unit and therefore render the complete desired address and subnet mask.
 
-Operational status and protocol mismatches are intentionally excluded from automatic remediation.
+Operational interface status and protocol mismatches are intentionally excluded from automatic remediation.
 
 The remediation planner resolves the failed validation target against the already platform-resolved validation expectation rather than repeating logical-to-physical interface mapping.
 
@@ -475,7 +488,7 @@ Controlled deployment currently has the following limitations:
 - multi-device transaction semantics are not implemented;
 - unsupported drift blocks deployment rather than being partially remediated;
 - OSPF neighbor state is collected but OSPF adjacency expectations are not yet modelled in desired-state validation;
-- operational interface status/protocol drift, VLAN drift, and switchport drift are not yet enabled for automatic remediation;
+- operational interface status/protocol drift, VLAN status drift, and switchport drift are not enabled for automatic remediation;
 - structured deployment audit/report artifacts are not yet complete; and
 - systematic failure-path acceptance coverage is still being expanded.
 

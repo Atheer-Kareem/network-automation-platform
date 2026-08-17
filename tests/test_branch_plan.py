@@ -9,8 +9,8 @@ from network_automation_platform.device_state import DeviceState
 from network_automation_platform.inventory import DeviceInventory
 from network_automation_platform.remediation import (
     DeviceRemediationPlan,
-    InterfaceRemediation,
     RemediationAction,
+    VlanRemediation,
 )
 from network_automation_platform.validation import (
     InterfaceExpectation,
@@ -18,6 +18,7 @@ from network_automation_platform.validation import (
     ValidationExpectation,
     ValidationReport,
     ValidationStatus,
+    VlanExpectation,
 )
 from tests.factories import (
     TEST_ROUTER_IP,
@@ -243,9 +244,9 @@ def test_plan_branch_reports_drift_with_targeted_remediation() -> None:
         hostname="br01-sw01",
         checks=[
             ValidationCheck(
-                name="interface:Vlan99",
+                name="vlan:10",
                 status=ValidationStatus.FAIL,
-                message="Interface Vlan99 is missing",
+                message="VLAN 10 is missing",
                 reason="missing",
             )
         ],
@@ -260,9 +261,11 @@ def test_plan_branch_reports_drift_with_targeted_remediation() -> None:
     )
 
     switch_expectation = ValidationExpectation(
-        interfaces=[
-            InterfaceExpectation(
-                name="Vlan99",
+        vlans=[
+            VlanExpectation(
+                vlan_id=10,
+                name="USERS",
+                status="active",
             )
         ]
     )
@@ -275,13 +278,11 @@ def test_plan_branch_reports_drift_with_targeted_remediation() -> None:
         hostname="br01-sw01",
         actions=[
             RemediationAction(
-                description="Create/configure interface Vlan99",
-                remediation=InterfaceRemediation(
-                    kind="interface",
-                    interface_name="Vlan99",
-                    description="Switch management SVI",
-                    ipv4="10.101.99.21/24",
-                    enabled=True,
+                description="Create/configure VLAN 10",
+                remediation=VlanRemediation(
+                    kind="vlan",
+                    vlan_id=10,
+                    name="USERS",
                 ),
             )
         ],
@@ -291,10 +292,8 @@ def test_plan_branch_reports_drift_with_targeted_remediation() -> None:
     switch_candidate = "hostname br01-sw01"
 
     switch_commands = [
-        "interface Vlan99",
-        "description Switch management SVI",
-        "ip address 10.101.99.21 255.255.255.0",
-        "no shutdown",
+        "vlan 10",
+        "name USERS",
     ]
 
     with (

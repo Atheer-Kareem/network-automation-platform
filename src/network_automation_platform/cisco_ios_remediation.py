@@ -3,6 +3,7 @@ from ipaddress import IPv4Interface
 from network_automation_platform.remediation import (
     DeviceRemediationPlan,
     InterfaceRemediation,
+    VlanRemediation,
 )
 
 
@@ -36,7 +37,13 @@ def render_interface_remediation(
     return commands
 
 
-
+def render_vlan_remediation(
+    remediation: VlanRemediation,
+) -> list[str]:
+    return [
+        f"vlan {remediation.vlan_id}",
+        f"name {remediation.name}",
+    ]
 
 def render_device_remediation(
     plan: DeviceRemediationPlan,
@@ -49,6 +56,12 @@ def render_device_remediation(
         if isinstance(remediation, InterfaceRemediation):
             commands.extend(
                 render_interface_remediation(remediation)
+            )
+            continue
+
+        if isinstance(remediation, VlanRemediation):
+            commands.extend(
+                render_vlan_remediation(remediation)
             )
             continue
 

@@ -173,6 +173,8 @@ Current V1 capabilities include:
 
 Targeted interface remediation now supports missing managed interfaces/SVIs, description mismatch, IPv4 address or prefix-length mismatch, and administrative-state mismatch.
 
+Targeted VLAN remediation now supports missing managed VLANs and VLAN name mismatch.
+
 ### Remaining V1 Work
 
 #### 1. Branch-wide deployment preflight [Completed]
@@ -211,12 +213,16 @@ Completed capabilities include:
 
 Each capability must preserve the existing structured validation-to-remediation boundary.
 
-#### 3. VLAN remediation
+#### 3. VLAN remediation [Completed]
 
-Introduce structured VLAN remediation for carefully scoped drift such as:
+Targeted VLAN remediation now supports carefully scoped configuration drift:
 
-- missing VLAN; and
+- missing managed VLAN; and
 - VLAN name mismatch.
+
+VLAN status mismatch remains validation-only operational drift and is not eligible for automatic remediation.
+
+Mixed configurable and operational VLAN drift is blocked rather than partially remediated.
 
 #### 4. Switchport remediation
 
