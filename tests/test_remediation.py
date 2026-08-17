@@ -15,6 +15,7 @@ from network_automation_platform.remediation_planner import (
 )
 from network_automation_platform.validation import (
     InterfaceExpectation,
+    OspfNeighborExpectation,
     SwitchportExpectation,
     ValidationCheck,
     ValidationExpectation,
@@ -310,6 +311,29 @@ def test_interface_operational_mismatch_is_not_supported_remediation() -> None:
     )
 
     assert is_supported_remediation_check(check) is False
+
+def test_ospf_operational_failure_is_not_supported_remediation() -> None:
+    check = ValidationCheck(
+        name="ospf_neighbor:10.101.255.2",
+        status=ValidationStatus.FAIL,
+        message="OSPF neighbor 10.101.255.2 is missing",
+        reason="missing",
+    )
+
+    assert is_supported_remediation_check(check) is False
+
+    plan = build_device_remediation_plan(
+        expectation=ValidationExpectation(
+            ospf_neighbors=[
+                OspfNeighborExpectation(address="10.101.255.2")
+            ],
+        ),
+        report=ValidationReport(
+            hostname="br01-rtr01",
+            checks=[check],
+        ),
+    )
+    assert plan.has_changes is False
 
 def test_planner_requires_prefix_for_ipv4_remediation() -> None:
     expectation = ValidationExpectation(

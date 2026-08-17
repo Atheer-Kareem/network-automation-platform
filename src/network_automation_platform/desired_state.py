@@ -1,4 +1,4 @@
-from ipaddress import IPv4Interface, IPv4Network
+from ipaddress import IPv4Address, IPv4Interface, IPv4Network
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -25,6 +25,7 @@ class OspfDesiredState(BaseModel):
     process_id: int = 1
     area: int = 0
     networks: list[IPv4Network]
+    neighbor_address: IPv4Address
 
 
 class DeviceDesiredState(BaseModel):

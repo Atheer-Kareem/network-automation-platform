@@ -158,6 +158,7 @@ Current V1 capabilities include:
 - route validation;
 - VLAN validation;
 - switchport validation;
+- expected OSPF adjacency validation;
 - branch-level validation;
 - branch-level planning;
 - structured drift classification;
@@ -238,13 +239,15 @@ Administrative-mode changes are rendered as complete desired switchport configur
 
 Missing switchport state, `switchport_enabled` mismatch, native-VLAN mismatch, and mixed supported/unsupported drift remain blocked. Operational mode is collected but not currently desired-state validated. IOS voice-VLAN and empty allowed-VLAN semantics are not implemented.
 
-#### 5. Routing and OSPF validation [Next]
+#### 5. Routing and OSPF validation [In Progress]
 
 Extend validation beyond configuration presence toward network behavior.
 
-Planned work includes modelling expected OSPF adjacency and relevant routing outcomes.
+Expected OSPF adjacency validation is complete. The peer address is explicit branch intent and generic validation checks the mapped WAN interface and normalized `FULL` state. IOS adjacency-role suffixes are normalized at the collector boundary.
 
-Routing-protocol remediation is not required for V1.
+This increment does not validate OSPF router ID or reject unexpected additional neighbors. OSPF failures remain unsupported for remediation and block branch deployment before writes.
+
+OSPF-learned route outcome validation is the next routing step. Live CML acceptance of the adjacency increment remains outstanding.
 
 #### 6. Deployment evidence and reporting
 

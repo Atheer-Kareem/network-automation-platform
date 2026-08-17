@@ -42,7 +42,7 @@ The controlled deployment workflow has been validated against real lab drift fro
 
 V1 is not yet complete.
 
-Remaining V1 work focuses on validating routing and OSPF outcomes, improving deployment evidence, and systematically exercising failure paths.
+Remaining V1 work focuses on validating OSPF-learned route outcomes, improving deployment evidence, and systematically exercising failure paths.
 
 Future development is tracked through a defined V1 → V1.5 → V2 roadmap.
 
@@ -55,6 +55,7 @@ Future development is tracked through a defined V1 → V1.5 → V2 roadmap.
 - Capability-aware state collection
 - Interface validation
 - Route validation
+- Expected OSPF adjacency validation
 - VLAN validation
 - Switchport validation
 - Branch-level validation workflow
@@ -376,7 +377,7 @@ V1 proves the core network automation architecture and controlled execution mode
 Remaining V1 work includes:
 
 ```text
-Routing and OSPF operational validation
+OSPF-learned route outcome validation
         ↓
 Deployment evidence and reporting
         ↓
@@ -583,7 +584,9 @@ Operational interface status/protocol mismatches and VLAN status mismatches may 
 
 The remediation architecture is designed so additional types can be introduced without moving vendor-specific command generation into the core planning layer.
 
-The next planned V1 implementation item is routing and OSPF operational validation. Live CML acceptance of targeted switchport remediation has been completed.
+Expected OSPF adjacency is validated by explicit neighbor address, mapped WAN interface, and normalized `FULL` state. OSPF operational failures are not remediable and therefore block deployment rather than producing configuration commands. Router-ID validation, rejection of unexpected additional neighbors, and OSPF-learned route outcome validation are not included in this increment.
+
+The next planned V1 implementation item is OSPF-learned route outcome validation. Live CML acceptance of targeted switchport remediation has been completed; live CML acceptance of OSPF adjacency validation remains outstanding.
 
 ## V1 Safety Boundaries
 

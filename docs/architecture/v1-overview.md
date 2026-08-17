@@ -468,7 +468,7 @@ The target V1 scope includes:
 - targeted interface remediation for supported configuration mismatches;
 - targeted VLAN remediation;
 - targeted switchport remediation;
-- routing and OSPF operational validation;
+- expected OSPF adjacency validation;
 - structured deployment evidence and reporting;
 - systematic failure-path validation;
 - representative CML acceptance testing;
@@ -493,14 +493,15 @@ Controlled deployment currently has the following limitations:
 - remediation is executed as CLI command sequences;
 - multi-device transaction semantics are not implemented;
 - unsupported drift blocks deployment rather than being partially remediated;
-- OSPF neighbor state is collected but OSPF adjacency expectations are not yet modelled in desired-state validation;
+- expected OSPF adjacency is matched by explicit neighbor address and validated for mapped WAN interface and normalized `FULL` state, but router ID and unexpected additional neighbors are not validated;
+- OSPF operational failures are validation-only and are not enabled for automatic remediation;
 - operational interface status/protocol drift, VLAN status drift, missing switchport state, `switchport_enabled` drift, native-VLAN drift, and mixed supported/unsupported switchport drift are not enabled for automatic remediation;
 - structured deployment audit/report artifacts are not yet complete; and
 - systematic failure-path acceptance coverage is still being expanded.
 
 These constraints are intentional at the current stage of V1.
 
-The remaining V1 work focuses on routing and OSPF operational validation, improving deployment evidence, and proving important failure paths before declaring V1 complete.
+The remaining V1 work focuses on OSPF-learned route outcome validation, improving deployment evidence, and proving important failure paths before declaring V1 complete. Live CML acceptance of OSPF adjacency validation remains outstanding.
 
 ## Out of Scope for V1
 

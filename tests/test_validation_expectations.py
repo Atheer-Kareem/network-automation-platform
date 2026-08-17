@@ -132,6 +132,12 @@ def test_build_expectation_from_branch_desired_state() -> None:
     assert intent.networks.voice.prefix in expected_networks
     assert intent.networks.management.prefix in expected_networks
 
+    assert len(expectation.ospf_neighbors) == 1
+    neighbor = expectation.ospf_neighbors[0]
+    assert neighbor.address == intent.routing.neighbor_address
+    assert neighbor.interface == "GigabitEthernet0/1"
+    assert neighbor.state == "FULL"
+
 def test_build_switch_validation_expectation() -> None:
     device = DeviceDesiredState(
         hostname="br01-sw01",

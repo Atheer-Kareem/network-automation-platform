@@ -277,8 +277,10 @@ def parse_ip_ospf_neighbor(
         OspfNeighborState(
             neighbor_id=neighbor["neighbor_id"],
             address=neighbor["ip_address"],
-            interface=neighbor["interface"],
-            state=neighbor["state"],
+            interface=normalize_ios_interface_name(
+                neighbor["interface"]
+            ),
+            state=neighbor["state"].split("/", maxsplit=1)[0],
         )
         for neighbor in parsed_output
     ]
@@ -289,6 +291,9 @@ def normalize_ios_interface_name(name: str) -> str:
         "Fa": "FastEthernet",
         "Eth": "Ethernet",
     }
+
+    if name.startswith(tuple(prefixes.values())):
+        return name
 
     for abbreviation, full_name in prefixes.items():
         if name.startswith(abbreviation):

@@ -5,6 +5,7 @@ from network_automation_platform.platform_profiles import (
 )
 from network_automation_platform.validation import (
     InterfaceExpectation,
+    OspfNeighborExpectation,
     RouteExpectation,
     SwitchportExpectation,
     ValidationExpectation,
@@ -27,6 +28,7 @@ def _build_router_expectation(
 
     interfaces: list[InterfaceExpectation] = []
     routes: list[RouteExpectation] = []
+    ospf_neighbors: list[OspfNeighborExpectation] = []
 
     for interface in device.interfaces:
         if interface.parent is None:
@@ -75,9 +77,27 @@ def _build_router_expectation(
                 )
             )
 
+    if device.ospf is not None:
+        try:
+            wan_interface = profile.interface_map["wan"]
+        except KeyError as exc:
+            raise ValidationExpectationError(
+                f"Missing interface mapping for wan on platform "
+                f"{device.platform}"
+            ) from exc
+
+        ospf_neighbors.append(
+            OspfNeighborExpectation(
+                address=device.ospf.neighbor_address,
+                interface=wan_interface,
+                state="FULL",
+            )
+        )
+
     return ValidationExpectation(
         interfaces=interfaces,
         routes=routes,
+        ospf_neighbors=ospf_neighbors,
     )
 
 def _build_switch_expectation(
