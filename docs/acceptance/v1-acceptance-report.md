@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document is the release gate for the bounded V1 safe automation platform. It audits the implemented system against the eight roadmap completion criteria and consolidates existing implementation, automated, documentation, and live evidence. It does not declare V1 complete: the final representative CML acceptance run remains pending and must be operator approved.
+This document is the release gate for the bounded V1 safe automation platform. It audits the implemented system against the eight roadmap completion criteria and consolidates existing implementation, automated, documentation, and live evidence. All engineering acceptance criteria now pass. Release publication remains pending review and merge of the release candidate, followed by tagging merged `main` and creating the GitHub release.
 
 ## Release criteria
 
@@ -14,10 +14,10 @@ This document is the release gate for the bounded V1 safe automation platform. I
 | Routing validation proves meaningful operational state | PASS | The representative branch requires OSPF neighbor `10.101.255.2` in `FULL` state and learned route `10.200.0.1/32` through that peer and the mapped WAN interface. Both outcomes and their fail-closed behavior are live accepted. |
 | Major failure paths are tested | PASS | All 11 V1 failure paths have deterministic automated evidence; unreachable, authentication, and strict host-key failures also have safe live evidence. |
 | Operator documentation is complete | PASS | README and architecture documentation cover prerequisites, connection inputs, inventory and SSH trust, validate/plan/deploy, approvals, JSON reporting, exit/error behavior, safety boundaries, and limitations. |
-| Representative CML acceptance scenarios pass | PENDING FINAL ACCEPTANCE | Historical focused CML scenarios pass. One final multi-device, multi-category end-to-end run remains to consolidate the complete V1 workflow. |
+| Representative CML acceptance scenarios pass | PASS | Historical focused scenarios and the final multi-device, multi-category controlled deployment completed successfully with schema-v1 evidence and restored compliance. |
 | Architecture documentation accurately describes the implemented system | PASS | The V1 overview, roadmap, branch/network documents, failure-path matrix, and this report agree with current code and explicit limitations. |
 
-Seven of eight criteria pass before the final live run. No unaddressed implementation gap was found.
+All eight criteria pass. No unaddressed implementation or architecture gap remains inside the defined V1 scope.
 
 ## Existing implementation evidence
 
@@ -43,31 +43,32 @@ Existing operator-established CML evidence includes:
 - targeted management SVI/VLAN drift detection, approval, deployment, fresh collection, and restored compliance;
 - schema-version `1` JSON evidence for a successful controlled deployment with no secrets;
 - expected OSPF adjacency in `FULL` state and required route `10.200.0.1/32` learned through OSPF from `10.101.255.2` on the mapped WAN interface;
-- missing adjacency and missing learned-route outcomes blocking deployment with zero writes; and
-- safe live connection failures for an unused endpoint, disposable invalid authentication, and strict temporary host-key trust, with no device commands, persistent trust/inventory changes, or credential exposure.
+- missing adjacency and missing learned-route outcomes blocking deployment with zero writes;
+- safe live connection failures for an unused endpoint, disposable invalid authentication, and strict temporary host-key trust, with no device commands, persistent trust/inventory changes, or credential exposure; and
+- final multi-device remediation of a router interface-description mismatch and switch VLAN-name mismatch, ending `COMPLIANT` and `NO DRIFT` with verified schema-v1 evidence.
 
 Unsafe post-write failures remain deterministic automated evidence rather than deliberate live disruption.
 
-## Final representative acceptance plan
+## Final representative acceptance evidence
 
-This plan is for a future operator-approved CML run. Do not persist the temporary drift to startup configuration.
+The final operator-approved CML run completed successfully. Temporary drift was not persisted to startup configuration, and no manual restoration was required.
 
-### 1. Confirm baseline
+### 1. Initial baseline
 
-Run:
+The initial read-only checks were:
 
 ```bash
 uv run nap validate branch-01
 uv run nap plan branch-01
 ```
 
-Require `RESULT: COMPLIANT` and `RESULT: NO DRIFT` before continuing.
+They returned `RESULT: COMPLIANT` and `RESULT: NO DRIFT`.
 
-### 2. Inject two harmless supported differences
+### 2. Temporary supported differences
 
-On `br01-rtr01`, change only the cosmetic LAN-trunk description. Intended value: `Branch LAN trunk`. Temporary value: `V1 ACCEPTANCE TEMPORARY DRIFT`.
+On `br01-rtr01`, only the cosmetic LAN-trunk description changed. Intended value: `Branch LAN trunk`. Temporary value: `V1 ACCEPTANCE TEMPORARY DRIFT`.
 
-Future operator-approved commands:
+Operator-approved temporary commands:
 
 ```text
 configure terminal
@@ -83,9 +84,9 @@ interface GigabitEthernet0/2
 description Branch LAN trunk
 ```
 
-On `br01-sw01`, change only the cosmetic name of user VLAN 10. Intended value: `USERS`. Temporary value: `USERS_TEMP`.
+On `br01-sw01`, only the cosmetic name of user VLAN 10 changed. Intended value: `USERS`. Temporary value: `USERS_TEMP`.
 
-Future operator-approved commands:
+Operator-approved temporary commands:
 
 ```text
 configure terminal
@@ -103,11 +104,11 @@ name USERS
 
 These differences span both managed devices and two remediation categories while leaving OOB addressing, SSH reachability, WAN state, OSPF, routing, switchport forwarding, trunks, access VLAN assignment, and management SVI connectivity unchanged.
 
-### 3. Validate, plan, and review
+### 3. Validation and planning result
 
-Run `uv run nap validate branch-01` and require only the two expected failed checks. Run `uv run nap plan branch-01` and require only the exact targeted commands above. Any additional or unsupported drift is a stop condition.
+Validation and planning detected only `interface:GigabitEthernet0/2` with `mismatched_fields=["description"]` and `vlan:10` with `mismatched_fields=["name"]`. They produced only the exact targeted commands above. No interface, IP, OSPF, routing, management, trunk, switchport, administrative-state, or unsupported drift appeared.
 
-### 4. Deploy and capture evidence
+### 4. Controlled deployment and evidence
 
 Run:
 
@@ -116,15 +117,15 @@ uv run nap deploy branch-01 \
   --report-json /tmp/nap-v1-final-acceptance.json
 ```
 
-The operator must approve the exact remediation for both devices. Confirm that both approvals occur before the first write, only the displayed commands are sent, immediate OOB pre-change validation passes, execution succeeds, fresh state is collected, and complete post-change validation passes.
+The operator approved the exact remediation for both devices. Both approvals occurred before writes; only the displayed commands were sent; pre-change validation passed; execution succeeded; fresh state was collected; and complete post-change validation passed.
 
-Inspect the JSON artifact and require `schema_version` `1`, branch `branch-01`, both original drift checks, exact remediation commands, `approved` status, successful execution and post-change evidence, final outcome `succeeded`, and no credential, SSH setting, or connection material.
+The `/tmp/nap-v1-final-acceptance.json` artifact was verified programmatically against `BranchDeploymentReport`: `schema_version` is `1`, `branch_id` is `branch-01`, both original drift checks and exact remediation commands are retained, both approvals are `approved`, pre-change and post-change phases passed, both executions were attempted and succeeded with deployment status and final outcome `succeeded`, and credential, username, SSH, trust-file, connection-object, and configured NAP connection values are absent. Verifier result: `RESULT: V1 FINAL EVIDENCE PASS`.
 
-### 5. Confirm final state and restoration
+### 5. Final state
 
-Run `uv run nap validate branch-01` and `uv run nap plan branch-01`; require `COMPLIANT` and `NO DRIFT`.
+Final validation and planning returned `RESULT: COMPLIANT` and `RESULT: NO DRIFT`. No manual restoration was required.
 
-If controlled deployment cannot restore either cosmetic value, stop and use only these explicit operator-approved restoration commands:
+The pre-approved contingency restoration commands were not needed:
 
 ```text
 br01-rtr01:
@@ -140,7 +141,7 @@ br01-sw01:
   end
 ```
 
-Re-run validation and planning after restoration. Do not save the temporary drift. Any loss of management, adjacency, learned-route, or trunk state is an immediate stop condition.
+No loss of management, adjacency, learned-route, or trunk state occurred.
 
 ## Known V1 limitations
 
@@ -150,14 +151,14 @@ Initial connection failures occur before a branch deployment result exists and t
 
 ## Release decision
 
-**PENDING FINAL ACCEPTANCE.** The implementation and seven release criteria are supported by existing evidence. V1 must not be declared complete until the final representative scenario above passes and its evidence is recorded.
+**PASS.** All eight release criteria are supported by implementation, automated, documentation, and live evidence. V1 acceptance is complete against its defined engineering scope. Release publication remains pending review and merge of this release candidate.
 
 The proposed release sequence is:
 
 ```text
-final representative acceptance passes
+V1 acceptance complete
     ↓
-update release documentation and project version to 1.0.0
+version 1.0.0 prepared in the release PR
     ↓
 merge the release PR
     ↓
@@ -166,4 +167,4 @@ tag merged main as v1.0.0
 create the GitHub release
 ```
 
-The current project version remains `0.1.0`; no tag or GitHub release is created in this phase.
+The project version is prepared as `1.0.0`. No tag or GitHub release is created in this phase.

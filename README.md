@@ -6,7 +6,7 @@ The project is designed around a clear separation between network intent, desire
 
 ## Status
 
-V1 is under active development.
+V1 engineering acceptance is complete.
 
 The platform has reached a major V1 milestone: the core end-to-end automation lifecycle has been proven against a representative Cisco branch environment.
 
@@ -40,9 +40,9 @@ deployment outcome
 
 The controlled deployment workflow has been validated against real lab drift from detection through targeted repair and final desired-state compliance.
 
-V1 is not yet complete.
+The complete controlled lifecycle passed final representative CML acceptance across both managed devices and multiple supported drift categories. Release publication remains pending review and merge of the `1.0.0` release candidate, followed by tagging merged `main` and creating the GitHub release.
 
-Deployment-report live acceptance and failure-path hardening are complete. Remaining V1 work is final representative V1 acceptance and release.
+V1.5 is the next capability-development phase after the V1 release is published.
 
 Future development is tracked through a defined V1 → V1.5 → V2 roadmap.
 
@@ -404,12 +404,14 @@ The platform roadmap is divided into three capability stages.
 
 V1 proves the core network automation architecture and controlled execution model.
 
-Remaining V1 work includes:
+V1 engineering acceptance is complete. Release publication follows:
 
 ```text
-Final representative V1 acceptance
+merge the reviewed 1.0.0 release candidate
         ↓
-V1 release
+tag merged main as v1.0.0
+        ↓
+publish the GitHub release
 ```
 
 V1 is complete when supported automation works across multiple drift categories, unsafe or unsupported changes fail closed, important operational outcomes are validated, major failure paths are proven, and the representative acceptance scenarios pass.
