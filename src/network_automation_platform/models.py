@@ -41,6 +41,7 @@ class Wan(BaseModel):
 class Routing(BaseModel):
     protocol: Literal["ospf"]
     area: int = Field(ge=0)
+    neighbor_address: IPv4Address
 
 
 class BranchIntent(BaseModel):
@@ -64,6 +65,22 @@ class BranchIntent(BaseModel):
                     f"{device.management_ip} is not within "
                     f"{management_network}"
                 )
+
+        wan_network = self.wan.transit_prefix
+        neighbor_address = self.routing.neighbor_address
+        router_wan_address = wan_network.network_address + 1
+
+        if neighbor_address not in wan_network:
+            raise ValueError(
+                f"OSPF neighbor address {neighbor_address} is not within "
+                f"WAN transit network {wan_network}"
+            )
+
+        if neighbor_address == router_wan_address:
+            raise ValueError(
+                f"OSPF neighbor address {neighbor_address} cannot be "
+                "the branch router WAN address"
+            )
 
         return self
 

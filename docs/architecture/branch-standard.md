@@ -124,11 +124,11 @@ The representative V1 branch uses OSPF for dynamic routing toward upstream infra
 
 The branch router advertises the branch networks and forms an adjacency across the WAN transit network.
 
-OSPF is part of the representative network design, but current V1 desired-state validation does not yet model expected OSPF peer identity or adjacency state.
+Branch intent explicitly identifies the expected upstream peer by neighbor address. For branch 01 this is `10.101.255.2`; it must belong to the configured WAN transit network and must not be the branch router's derived WAN address.
 
-OSPF neighbor state may be collected for operational visibility where the device inventory enables that capability.
+The vendor-neutral desired state and validation expectation carry that address, the WAN role's mapped physical interface, and the protocol state `FULL`. Peer identity is not inferred from a hard-coded addressing rule.
 
-Operational OSPF adjacency validation is part of the remaining V1 target scope.
+OSPF adjacency is operational validation only. OSPF router ID is not validated, unexpected additional neighbors are not rejected, and OSPF failures cannot produce remediation. OSPF-learned route outcome validation remains a subsequent V1 increment.
 
 ## Management Plane Separation
 

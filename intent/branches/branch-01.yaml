@@ -33,3 +33,4 @@ wan:
 routing:
   protocol: ospf
   area: 0
+  neighbor_address: 10.101.255.2

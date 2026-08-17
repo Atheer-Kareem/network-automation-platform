@@ -394,7 +394,7 @@ def test_collect_device_state() -> None:
     assert str(neighbor.neighbor_id) == "10.101.255.2"
     assert str(neighbor.address) == "10.101.255.2"
     assert neighbor.interface == "FastEthernet1/0"
-    assert neighbor.state == "FULL/DR"
+    assert neighbor.state == "FULL"
 
     assert connection.send_command.call_count == 4
     assert connection.send_command.call_args_list == [
@@ -412,7 +412,7 @@ def test_parse_ip_ospf_neighbor() -> None:
             "state": "FULL/DR",
             "dead_time": "00:00:35",
             "ip_address": "10.101.255.2",
-            "interface": "FastEthernet1/0",
+            "interface": "Gi1/0",
         }
     ]
 
@@ -424,8 +424,8 @@ def test_parse_ip_ospf_neighbor() -> None:
 
     assert str(neighbor.neighbor_id) == "10.101.255.2"
     assert str(neighbor.address) == "10.101.255.2"
-    assert neighbor.interface == "FastEthernet1/0"
-    assert neighbor.state == "FULL/DR"
+    assert neighbor.interface == "GigabitEthernet1/0"
+    assert neighbor.state == "FULL"
 
 def test_parse_ip_ospf_neighbor_returns_empty_list_for_no_neighbors() -> None:
     assert parse_ip_ospf_neighbor([]) == []

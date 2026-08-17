@@ -246,6 +246,91 @@ def test_deploy_branch_blocks_unsupported_drift() -> None:
 
     deploy_mock.assert_not_called()
 
+
+def test_deploy_branch_blocks_ospf_operational_drift() -> None:
+    inventory = DeviceInventory(
+        devices=[
+            make_inventory_device(
+                hostname="br01-rtr01",
+                host=str(TEST_ROUTER_IP),
+            ),
+            make_inventory_device(
+                hostname="br01-sw01",
+                host=str(TEST_SWITCH_IP),
+            ),
+        ]
+    )
+    settings = ConnectionSettings(
+        username="netdevops",
+        password=SecretStr("test"),
+        ssh_config_file=Path("/tmp/lab_config"),
+        ssh_known_hosts_file=Path("/tmp/known_hosts"),
+    )
+    states = [
+        DeviceState(hostname="br01-rtr01", interfaces=[], routes=[]),
+        DeviceState(hostname="br01-sw01", interfaces=[], routes=[]),
+    ]
+    reports = [
+        ValidationReport(
+            hostname="br01-rtr01",
+            checks=[
+                ValidationCheck(
+                    name="ospf_neighbor:10.101.255.2",
+                    status=ValidationStatus.FAIL,
+                    message="OSPF neighbor 10.101.255.2 is missing",
+                    reason="missing",
+                )
+            ],
+        ),
+        ValidationReport(
+            hostname="br01-sw01",
+            checks=[
+                ValidationCheck(
+                    name="switch-check",
+                    status=ValidationStatus.PASS,
+                    message="Switch matches expectation",
+                )
+            ],
+        ),
+    ]
+
+    with (
+        patch(
+            "network_automation_platform.branch_deployment."
+            "collect_device_state",
+            side_effect=states,
+        ),
+        patch(
+            "network_automation_platform.branch_deployment."
+            "validate_device_against_desired_state",
+            side_effect=reports,
+        ),
+        patch(
+            "network_automation_platform.branch_deployment."
+            "deploy_inventory_device",
+        ) as deploy_mock,
+    ):
+        result = deploy_branch(
+            "branch-01",
+            intent_path=Path("intent/branches/branch-01.yaml"),
+            inventory=inventory,
+            settings=settings,
+            approve=lambda *_: True,
+        )
+
+    assert result.blocked is True
+    assert (
+        result.devices[0].status
+        == BranchDeviceDeploymentStatus.BLOCKED
+    )
+    assert "unsupported drift" in result.devices[0].message
+    assert "ospf_neighbor:10.101.255.2" in result.devices[0].message
+    assert (
+        result.devices[1].status
+        == BranchDeviceDeploymentStatus.SKIPPED
+    )
+    deploy_mock.assert_not_called()
+
 def test_deploy_branch_applies_only_targeted_remediation() -> None:
     inventory = DeviceInventory(
         devices=[

@@ -5,12 +5,14 @@ import pytest
 from network_automation_platform.device_state import (
     DeviceState,
     InterfaceState,
+    OspfNeighborState,
     RouteState,
     SwitchportState,
     VlanState,
 )
 from network_automation_platform.validation import (
     InterfaceExpectation,
+    OspfNeighborExpectation,
     RouteExpectation,
     SwitchportExpectation,
     ValidationExpectation,
@@ -742,3 +744,125 @@ def test_validate_interface_reports_ipv4_mismatch() -> None:
     assert check.reason == "mismatch"
     assert check.mismatched_fields == ["ipv4"]
     assert "IPv4 expected 10.101.255.1, got 10.101.255.2" in check.message
+
+def test_validation_expectation_allows_ospf_only_checks() -> None:
+    expectation = ValidationExpectation(
+        ospf_neighbors=[
+            OspfNeighborExpectation(address="10.101.255.2")
+        ]
+    )
+
+    assert len(expectation.ospf_neighbors) == 1
+
+def test_validate_device_state_passes_expected_ospf_neighbor() -> None:
+    state = DeviceState(
+        hostname="br01-rtr01",
+        interfaces=[],
+        routes=[],
+        ospf_neighbors=[
+            OspfNeighborState(
+                neighbor_id="10.0.0.1",
+                address="10.101.255.2",
+                interface="GigabitEthernet0/1",
+                state="FULL",
+            ),
+            OspfNeighborState(
+                neighbor_id="10.0.0.2",
+                address="10.101.255.3",
+                interface="GigabitEthernet0/2",
+                state="FULL",
+            ),
+        ],
+    )
+    expectation = ValidationExpectation(
+        ospf_neighbors=[
+            OspfNeighborExpectation(
+                address="10.101.255.2",
+                interface="GigabitEthernet0/1",
+                state="FULL",
+            )
+        ]
+    )
+
+    report = validate_device_state(state, expectation)
+
+    assert report.passed is True
+    assert len(report.checks) == 1
+    assert report.checks[0].name == "ospf_neighbor:10.101.255.2"
+
+def test_validate_device_state_fails_missing_ospf_neighbor() -> None:
+    state = DeviceState(
+        hostname="br01-rtr01",
+        interfaces=[],
+        routes=[],
+    )
+    expectation = ValidationExpectation(
+        ospf_neighbors=[
+            OspfNeighborExpectation(address="10.101.255.2")
+        ]
+    )
+
+    report = validate_device_state(state, expectation)
+    check = report.checks[0]
+
+    assert check.status == ValidationStatus.FAIL
+    assert check.reason == "missing"
+    assert check.mismatched_fields == []
+
+@pytest.mark.parametrize(
+    ("interface", "state", "mismatched_fields"),
+    [
+        pytest.param(
+            "GigabitEthernet0/2",
+            "FULL",
+            ["interface"],
+            id="wrong-interface",
+        ),
+        pytest.param(
+            "GigabitEthernet0/1",
+            "INIT",
+            ["state"],
+            id="non-full-state",
+        ),
+        pytest.param(
+            "GigabitEthernet0/2",
+            "INIT",
+            ["interface", "state"],
+            id="combined-mismatch-order",
+        ),
+    ],
+)
+def test_validate_device_state_reports_ospf_neighbor_mismatches(
+    interface: str,
+    state: str,
+    mismatched_fields: list[str],
+) -> None:
+    device_state = DeviceState(
+        hostname="br01-rtr01",
+        interfaces=[],
+        routes=[],
+        ospf_neighbors=[
+            OspfNeighborState(
+                neighbor_id="10.0.0.1",
+                address="10.101.255.2",
+                interface=interface,
+                state=state,
+            )
+        ],
+    )
+    expectation = ValidationExpectation(
+        ospf_neighbors=[
+            OspfNeighborExpectation(
+                address="10.101.255.2",
+                interface="GigabitEthernet0/1",
+                state="FULL",
+            )
+        ]
+    )
+
+    report = validate_device_state(device_state, expectation)
+    check = report.checks[0]
+
+    assert check.status == ValidationStatus.FAIL
+    assert check.reason == "mismatch"
+    assert check.mismatched_fields == mismatched_fields

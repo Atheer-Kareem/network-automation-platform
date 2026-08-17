@@ -126,7 +126,11 @@ The representative lab uses OSPF to prove that the branch can exchange routes wi
 
 OSPF neighbor state is collected by the platform when the `ospf` state capability is enabled for a device.
 
-The current V1 platform collects OSPF neighbor state but does not yet model OSPF peer expectations as part of desired-state validation.
+The expected peer address is explicit branch intent and is propagated through vendor-neutral desired state. For branch 01 the expected neighbor is `10.101.255.2` on the physical interface mapped from the logical `wan` role, with expected protocol state `FULL`.
+
+Cisco IOS adjacency-role suffixes such as `FULL/DR`, `FULL/BDR`, and `FULL/-` are normalized to `FULL` at the collector boundary, along with IOS interface-name normalization. Generic validation matches the expected neighbor by address and compares its interface and state. It does not validate router ID or reject unexpected additional neighbors in this increment.
+
+OSPF adjacency failures are validation-only and cannot produce targeted remediation. OSPF-learned route outcome validation remains the next routing increment.
 
 ## Environment Portability
 

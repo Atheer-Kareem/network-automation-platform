@@ -36,6 +36,11 @@ class RouteExpectation(BaseModel):
     next_hop: IPv4Address | None = None
     outgoing_interface: str | None = None
 
+class OspfNeighborExpectation(BaseModel):
+    address: IPv4Address
+    interface: str | None = None
+    state: str | None = None
+
 class VlanExpectation(BaseModel):
     vlan_id: int
     name: str | None = None
@@ -53,6 +58,9 @@ class SwitchportExpectation(BaseModel):
 class ValidationExpectation(BaseModel):
     interfaces: list[InterfaceExpectation] = Field(default_factory=list)
     routes: list[RouteExpectation] = Field(default_factory=list)
+    ospf_neighbors: list[OspfNeighborExpectation] = Field(
+        default_factory=list
+    )
     vlans: list[VlanExpectation] = Field(default_factory=list)
     switchports: list[SwitchportExpectation] = Field(
         default_factory=list
@@ -64,6 +72,7 @@ class ValidationExpectation(BaseModel):
             (
                 self.interfaces,
                 self.routes,
+                self.ospf_neighbors,
                 self.vlans,
                 self.switchports,
             )
@@ -309,6 +318,70 @@ def validate_device_state(
                 message=message,
             )
         )
+
+    for expected in expectation.ospf_neighbors:
+        actual = next(
+            (
+                neighbor
+                for neighbor in state.ospf_neighbors
+                if neighbor.address == expected.address
+            ),
+            None,
+        )
+
+        if actual is None:
+            checks.append(
+                ValidationCheck(
+                    name=f"ospf_neighbor:{expected.address}",
+                    status=ValidationStatus.FAIL,
+                    message=(
+                        f"OSPF neighbor {expected.address} is missing"
+                    ),
+                    reason="missing",
+                )
+            )
+            continue
+
+        failures: list[str] = []
+        mismatched_fields: list[str] = []
+
+        if (
+            expected.interface is not None
+            and actual.interface != expected.interface
+        ):
+            failures.append(
+                f"interface expected {expected.interface}, "
+                f"got {actual.interface}"
+            )
+            mismatched_fields.append("interface")
+
+        if expected.state is not None and actual.state != expected.state:
+            failures.append(
+                f"state expected {expected.state}, got {actual.state}"
+            )
+            mismatched_fields.append("state")
+
+        if failures:
+            checks.append(
+                ValidationCheck(
+                    name=f"ospf_neighbor:{expected.address}",
+                    status=ValidationStatus.FAIL,
+                    message="; ".join(failures),
+                    reason="mismatch",
+                    mismatched_fields=mismatched_fields,
+                )
+            )
+        else:
+            checks.append(
+                ValidationCheck(
+                    name=f"ospf_neighbor:{expected.address}",
+                    status=ValidationStatus.PASS,
+                    message=(
+                        f"OSPF neighbor {expected.address} "
+                        "matches expectation"
+                    ),
+                )
+            )
 
     for expected in expectation.vlans:
         actual = next(
