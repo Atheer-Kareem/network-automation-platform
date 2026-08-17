@@ -18,6 +18,11 @@ from network_automation_platform.connection_settings import (
     load_connection_settings,
 )
 from network_automation_platform.deployment import DeploymentStatus
+from network_automation_platform.deployment_reporting import (
+    DeploymentReportWriteError,
+    build_branch_deployment_report,
+    write_branch_deployment_report,
+)
 from network_automation_platform.device_resolution import (
     DeviceResolutionError,
 )
@@ -84,6 +89,11 @@ def build_parser() -> argparse.ArgumentParser:
     deploy_parser.add_argument(
         "branch",
         help="Branch identifier, for example branch-01",
+    )
+    deploy_parser.add_argument(
+        "--report-json",
+        type=Path,
+        help="Write versioned deployment evidence as JSON",
     )
 
     return parser
@@ -248,7 +258,10 @@ def confirm_deployment(
 
     return response in {"y", "yes"}
 
-def run_deploy(branch_id: str) -> int:
+def run_deploy(
+    branch_id: str,
+    report_json: Path | None = None,
+) -> int:
     intent_path = Path("intent/branches") / f"{branch_id}.yaml"
     inventory_path = Path("inventory/lab.yaml")
 
@@ -280,6 +293,14 @@ def run_deploy(branch_id: str) -> int:
     print()
 
     failed = False
+    report_error: DeploymentReportWriteError | None = None
+
+    if report_json is not None:
+        try:
+            report = build_branch_deployment_report(result)
+            write_branch_deployment_report(report, report_json)
+        except DeploymentReportWriteError as exc:
+            report_error = exc
 
     for device in result.devices:
         print(
@@ -307,14 +328,28 @@ def run_deploy(branch_id: str) -> int:
         ):
             failed = True
 
+    if report_json is not None and report_error is None:
+        print()
+        print(f"Report: {report_json}")
+
     if failed:
         print()
         print("RESULT: DEPLOYMENT NOT COMPLETED")
-        return 1
+        exit_code = 1
+    else:
+        print()
+        print("RESULT: DEPLOYMENT WORKFLOW COMPLETED")
+        exit_code = 0
 
-    print()
-    print("RESULT: DEPLOYMENT WORKFLOW COMPLETED")
-    return 0
+    if report_error is not None:
+        print(
+            "ERROR: Deployment workflow completed, but the requested "
+            f"report could not be written: {report_error}",
+            file=sys.stderr,
+        )
+        return 2
+
+    return exit_code
 
 def main() -> None:
     parser = build_parser()
@@ -333,6 +368,8 @@ def main() -> None:
         raise SystemExit(run_render_ssh_config())
     if args.command == "deploy":
         raise SystemExit(
-            run_deploy(args.branch)
+            run_deploy(
+                args.branch,
+                report_json=args.report_json,
+            )
         )
-

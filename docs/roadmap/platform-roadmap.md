@@ -170,8 +170,9 @@ Current V1 capabilities include:
 - pre-change OOB safety validation;
 - device identity checks;
 - fresh post-change state collection;
-- full post-change desired-state validation; and
-- explicit deployment outcomes.
+- full post-change desired-state validation;
+- explicit deployment outcomes; and
+- schema-versioned deployment evidence JSON.
 
 Targeted interface remediation now supports missing managed interfaces/SVIs, description mismatch, IPv4 address or prefix-length mismatch, and administrative-state mismatch.
 
@@ -248,11 +249,11 @@ Expected OSPF adjacency validation is complete. The peer address is explicit bra
 
 OSPF-learned route outcome implementation is complete. Branch intent explicitly requires `10.200.0.1/32` within the OSPF context. Validation derives the next hop from the expected peer and the outgoing interface from the mapped `wan` role, then checks the prefix, IOS OSPF protocol, next hop, and interface. Additional routes remain permitted; administrative distance, metric, route subtype, and ECMP cardinality are not validated.
 
-OSPF adjacency and learned-route failures remain unsupported for remediation and block branch deployment before writes. Live CML acceptance of adjacency validation is complete. Read-only route-outcome baseline validation is complete, while controlled learned-route withdrawal and restoration acceptance remains pending; therefore this roadmap item remains in progress.
+OSPF adjacency and learned-route failures remain unsupported for remediation and block branch deployment before writes. Live CML acceptance of adjacency and learned-route outcome validation is complete.
 
-#### 6. Deployment evidence and reporting
+#### 6. Deployment evidence and reporting [Completed]
 
-Improve structured evidence of each deployment.
+Completed branch deployment results can be transformed into durable, machine-readable schema-version `1` evidence containing:
 
 A deployment record should be able to represent:
 
@@ -267,7 +268,11 @@ post-change result
 final outcome
 ```
 
-Machine-readable output or report artifacts may be introduced where useful.
+The optional `nap deploy --report-json PATH` interface writes readable UTF-8 JSON for compliant, blocked, declined, successful, and failed workflow outcomes. Reports intentionally exclude credentials, SSH settings, secrets, and connection objects.
+
+Reporting remains separate from orchestration and device execution. It never authorizes writes, never retries deployment, and adds no rollback or multi-device transaction semantics. Broader retention and external audit-system integration remain future work.
+
+Implementation and automated coverage are complete. Live acceptance of JSON evidence from an operator-approved deployment workflow remains pending.
 
 #### 7. Failure-path hardening
 

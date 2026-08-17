@@ -5,6 +5,7 @@ from pydantic import SecretStr
 
 from network_automation_platform.branch_deployment import (
     BranchDeviceDeploymentStatus,
+    DeploymentApprovalStatus,
     deploy_branch,
 )
 from network_automation_platform.change_validation import (
@@ -143,6 +144,13 @@ def test_deploy_branch_skips_compliant_devices() -> None:
         result.devices[1].status
         == BranchDeviceDeploymentStatus.SKIPPED
     )
+    assert result.devices[0].initial_validation is reports[0]
+    assert result.devices[1].initial_validation is reports[1]
+    assert all(
+        device.approval_status
+        == DeploymentApprovalStatus.NOT_REQUIRED
+        for device in result.devices
+    )
 
     deploy_mock.assert_not_called()
 
@@ -243,6 +251,16 @@ def test_deploy_branch_blocks_unsupported_drift() -> None:
 
     assert "unsupported drift" in result.devices[1].message
     assert "vlan:99" in result.devices[1].message
+    assert (
+        result.devices[0].approval_status
+        == DeploymentApprovalStatus.NOT_REQUIRED
+    )
+    assert (
+        result.devices[1].approval_status
+        == DeploymentApprovalStatus.NOT_REQUESTED
+    )
+    assert result.devices[0].initial_validation is reports[0]
+    assert result.devices[1].initial_validation is reports[1]
 
     deploy_mock.assert_not_called()
 
@@ -624,6 +642,11 @@ def test_deploy_branch_applies_only_targeted_remediation() -> None:
         result.devices[1].remediation_commands
         == remediation_commands
     )
+    assert result.devices[1].initial_validation is switch_report
+    assert (
+        result.devices[1].approval_status
+        == DeploymentApprovalStatus.APPROVED
+    )
 
     expectation_mock.assert_called_once()
     remediation_mock.assert_called_once()
@@ -827,6 +850,11 @@ def test_deploy_branch_does_not_write_when_operator_declines() -> None:
     assert (
         result.devices[1].remediation_commands
         == remediation_commands
+    )
+    assert result.devices[1].initial_validation is switch_report
+    assert (
+        result.devices[1].approval_status
+        == DeploymentApprovalStatus.DECLINED
     )
 
     approve_mock.assert_called_once_with(
@@ -1234,6 +1262,11 @@ def test_deploy_branch_collects_all_approvals_before_any_write() -> None:
         result.devices[0].remediation_commands
         == router_commands
     )
+    assert result.devices[0].initial_validation is router_report
+    assert (
+        result.devices[0].approval_status
+        == DeploymentApprovalStatus.APPROVED
+    )
 
     assert (
         result.devices[1].status
@@ -1246,6 +1279,11 @@ def test_deploy_branch_collects_all_approvals_before_any_write() -> None:
     assert (
         result.devices[1].remediation_commands
         == switch_commands
+    )
+    assert result.devices[1].initial_validation is switch_report
+    assert (
+        result.devices[1].approval_status
+        == DeploymentApprovalStatus.DECLINED
     )
 
     approve_mock.assert_has_calls(
@@ -1566,6 +1604,12 @@ def test_deploy_branch_executes_only_after_all_approvals() -> None:
     assert (
         result.devices[1].status
         == BranchDeviceDeploymentStatus.DEPLOYED
+    )
+    assert result.devices[0].initial_validation is router_report
+    assert result.devices[1].initial_validation is switch_report
+    assert all(
+        device.approval_status == DeploymentApprovalStatus.APPROVED
+        for device in result.devices
     )
 
     assert (

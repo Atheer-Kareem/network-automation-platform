@@ -42,7 +42,7 @@ The controlled deployment workflow has been validated against real lab drift fro
 
 V1 is not yet complete.
 
-Remaining V1 work focuses on live acceptance of OSPF-learned route outcomes, improving deployment evidence, and systematically exercising failure paths.
+Remaining V1 work focuses on deployment-report acceptance, systematically exercising failure paths, and final representative acceptance.
 
 Future development is tracked through a defined V1 → V1.5 → V2 roadmap.
 
@@ -70,6 +70,7 @@ Future development is tracked through a defined V1 → V1.5 → V2 roadmap.
 - Fresh post-change state collection
 - Post-change desired-state validation
 - Explicit deployment outcome reporting
+- Optional schema-versioned deployment evidence JSON
 - Inventory-driven lab configuration
 - Generated OpenSSH configuration
 - Strict SSH host-key verification
@@ -93,6 +94,13 @@ Deploy supported targeted remediation with explicit operator approval:
 
 ```bash
 uv run nap deploy branch-01
+```
+
+Optionally write schema-versioned deployment evidence after any completed workflow outcome:
+
+```bash
+uv run nap deploy branch-01 \
+  --report-json /tmp/branch-01-deployment-report.json
 ```
 
 Generate the lab SSH configuration from inventory:
@@ -378,9 +386,7 @@ V1 proves the core network automation architecture and controlled execution mode
 Remaining V1 work includes:
 
 ```text
-OSPF-learned route outcome live acceptance
-        ↓
-Deployment evidence and reporting
+Deployment-report live acceptance
         ↓
 Failure-path hardening
         ↓
@@ -587,7 +593,9 @@ The remediation architecture is designed so additional types can be introduced w
 
 Expected OSPF adjacency is validated by explicit neighbor address, mapped WAN interface, and normalized `FULL` state. Branch intent also declares required learned prefixes inside the OSPF routing context. For the representative branch, `10.200.0.1/32` must be learned with IOS protocol `O`, the expected peer as next hop, and the platform-mapped WAN interface. The next hop and physical interface are derived rather than duplicated in intent.
 
-Additional routes remain permitted. Administrative distance, metric, route subtype, and ECMP cardinality are not validated. OSPF adjacency and learned-route failures are not remediable and therefore block deployment rather than producing configuration commands. Live CML acceptance of OSPF adjacency validation is complete; live failure-path acceptance of learned-route outcome validation remains pending.
+Additional routes remain permitted. Administrative distance, metric, route subtype, and ECMP cardinality are not validated. OSPF adjacency and learned-route failures are not remediable and therefore block deployment rather than producing configuration commands. Live CML acceptance of both OSPF adjacency and learned-route outcome validation is complete.
+
+Completed branch deployment workflows can be transformed into machine-readable schema-version `1` evidence. Each device record contains detected drift, targeted remediation commands, explicit approval status, pre-change validation, execution, post-change validation, final outcome, and message. `nap deploy --report-json PATH` writes this evidence for compliant, blocked, declined, successful, and failed outcomes without changing deployment authorization or execution semantics. Reports intentionally exclude credentials, SSH settings, and connection objects. Reporting adds neither rollback nor transaction semantics.
 
 ## V1 Safety Boundaries
 

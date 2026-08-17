@@ -268,6 +268,14 @@ Configuration execution success is intentionally distinct from overall deploymen
 
 A successful device write does not by itself mean that the deployment succeeded.
 
+### Deployment Evidence
+
+Completed branch deployment results can be transformed into a dedicated machine-readable report schema. Schema version `1` records the branch and, for each device, initial detected drift, targeted remediation commands, explicit approval status, pre-change validation, execution result, post-change validation, final outcome, and message.
+
+Only failed initial validation checks are included as detected drift. Connection credentials, SSH settings, inventory secrets, raw connections, and `SecretStr` values are intentionally excluded. The optional `nap deploy --report-json PATH` CLI argument writes readable UTF-8 JSON after the normal workflow returns, including compliant, blocked, declined, successful, and failure outcomes.
+
+Reporting is observational and does not participate in preflight, approval, pre-change validation, execution, or post-change authorization. A report-write failure does not retry deployment and is reported separately because device execution may already have occurred. Evidence generation does not provide rollback or multi-device transactional semantics.
+
 ## Execution Boundaries
 
 The core deployment workflow is vendor-independent.
@@ -498,12 +506,12 @@ Controlled deployment currently has the following limitations:
 - branch intent explicitly requires the representative upstream route `10.200.0.1/32` inside the OSPF context; validation derives its expected peer next hop and mapped WAN interface, permits additional routes, and does not validate administrative distance, metric, route subtype, or ECMP cardinality;
 - OSPF operational failures are validation-only and are not enabled for automatic remediation;
 - operational interface status/protocol drift, VLAN status drift, missing switchport state, `switchport_enabled` drift, native-VLAN drift, and mixed supported/unsupported switchport drift are not enabled for automatic remediation;
-- structured deployment audit/report artifacts are not yet complete; and
+- deployment evidence is schema-versioned JSON, but durable storage, retention, and external audit integration are not implemented; and
 - systematic failure-path acceptance coverage is still being expanded.
 
 These constraints are intentional at the current stage of V1.
 
-The remaining V1 work focuses on live CML acceptance of OSPF-learned route outcome validation, improving deployment evidence, and proving important failure paths before declaring V1 complete. Live CML acceptance of OSPF adjacency validation is complete; route-outcome failure-path acceptance remains pending.
+The remaining V1 work focuses on deployment-report acceptance, proving important failure paths, and final representative acceptance before declaring V1 complete. Live CML acceptance of OSPF adjacency and learned-route outcome validation is complete.
 
 ## Out of Scope for V1
 
