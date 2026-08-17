@@ -78,6 +78,19 @@ Future development is tracked through a defined V1 → V1.5 → V2 roadmap.
 
 ## Operational CLI
 
+### Prerequisites
+
+Run the CLI from the repository root after `uv sync`. The project-owned connection path requires these environment variables:
+
+```text
+NAP_DEVICE_USERNAME
+NAP_DEVICE_PASSWORD
+NAP_SSH_CONFIG_FILE
+NAP_SSH_KNOWN_HOSTS_FILE
+```
+
+`NAP_SSH_CONFIG_FILE` should identify the inventory-generated SSH configuration and `NAP_SSH_KNOWN_HOSTS_FILE` should identify the local trust file. Cisco connections use strict SSH host-key verification by default. Do not print or commit credential values or the local `known_hosts` file.
+
 Validate live branch state against desired state:
 
 ```bash
@@ -102,6 +115,14 @@ Optionally write schema-versioned deployment evidence after any completed workfl
 uv run nap deploy branch-01 \
   --report-json /tmp/branch-01-deployment-report.json
 ```
+
+CLI exit codes are:
+
+- `0`: the requested workflow completed without deployment failure;
+- `1`: drift was detected, or a completed deployment workflow was blocked or unsuccessful; and
+- `2`: an application, connection, collection, or requested report-write error occurred.
+
+Normal operational errors are printed as `ERROR` messages without a traceback. An initial connection failure occurs before a deployment result exists, so it does not produce a JSON deployment report.
 
 Generate the lab SSH configuration from inventory:
 

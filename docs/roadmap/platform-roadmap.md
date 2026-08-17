@@ -241,7 +241,7 @@ Administrative-mode changes are rendered as complete desired switchport configur
 
 Missing switchport state, `switchport_enabled` mismatch, native-VLAN mismatch, and mixed supported/unsupported drift remain blocked. Operational mode is collected but not currently desired-state validated. IOS voice-VLAN and empty allowed-VLAN semantics are not implemented.
 
-#### 5. Routing and OSPF validation [In Progress]
+#### 5. Routing and OSPF validation [Completed]
 
 Extend validation beyond configuration presence toward network behavior.
 
@@ -293,6 +293,8 @@ Systematically exercise important failure conditions, including:
 The automated coverage audit and current evidence are recorded in the [V1 failure-path matrix](../acceptance/v1-failure-path-matrix.md). All eleven paths have deterministic automated evidence, and the selected safe live subset for unreachable, authentication, and host-key failures completed successfully. Destructive or unsafe post-write failure injection is intentionally excluded. Failure-path hardening is complete for V1.
 
 #### 8. V1 acceptance and release
+
+Release-gate status and the pending final representative scenario are recorded in the [V1 acceptance report](../acceptance/v1-acceptance-report.md).
 
 V1 is complete when:
 
