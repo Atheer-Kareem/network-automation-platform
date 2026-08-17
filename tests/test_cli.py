@@ -26,6 +26,9 @@ from network_automation_platform.cli import (
     run_render_ssh_config,
     run_validate,
 )
+from network_automation_platform.collectors.cisco_ios import (
+    StateCollectionError,
+)
 from network_automation_platform.connection_settings import (
     ConnectionSettingsError,
 )
@@ -649,6 +652,52 @@ def test_run_deploy_without_report_preserves_existing_behavior(
     assert exit_code == 0
     assert "RESULT: DEPLOYMENT WORKFLOW COMPLETED" in output
     assert "Report:" not in output
+    write_mock.assert_not_called()
+
+
+def test_run_deploy_initial_collection_error_returns_two_without_report(
+    capsys,
+    tmp_path,
+) -> None:
+    report_path = tmp_path / "branch-01.json"
+
+    with (
+        patch(
+            "network_automation_platform.cli.load_device_inventory",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "network_automation_platform.cli.load_connection_settings",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "network_automation_platform.cli.deploy_branch",
+            side_effect=StateCollectionError(
+                "Unable to collect device state from br01-rtr01: "
+                "connection refused"
+            ),
+        ),
+        patch(
+            "network_automation_platform.cli.confirm_deployment"
+        ) as approve_mock,
+        patch(
+            "network_automation_platform.cli."
+            "write_branch_deployment_report"
+        ) as write_mock,
+    ):
+        exit_code = run_deploy(
+            "branch-01",
+            report_json=report_path,
+        )
+
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert captured.out == ""
+    assert "ERROR:" in captured.err
+    assert "br01-rtr01" in captured.err
+    assert "Traceback" not in captured.err
+    assert not report_path.exists()
+    approve_mock.assert_not_called()
     write_mock.assert_not_called()
 
 

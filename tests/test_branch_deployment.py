@@ -1,6 +1,7 @@
 from pathlib import Path
 from unittest.mock import Mock, call, patch
 
+import pytest
 from pydantic import SecretStr
 
 from network_automation_platform.branch_deployment import (
@@ -11,6 +12,9 @@ from network_automation_platform.branch_deployment import (
 from network_automation_platform.change_validation import (
     ChangeValidationResult,
     ValidationPhase,
+)
+from network_automation_platform.collectors.cisco_ios import (
+    StateCollectionError,
 )
 from network_automation_platform.connection_settings import (
     ConnectionSettings,
@@ -152,6 +156,78 @@ def test_deploy_branch_skips_compliant_devices() -> None:
         for device in result.devices
     )
 
+    deploy_mock.assert_not_called()
+
+
+def test_deploy_branch_initial_collection_failure_prevents_approval_and_write(
+) -> None:
+    inventory = DeviceInventory(
+        devices=[
+            make_inventory_device(
+                hostname="br01-rtr01",
+                host=str(TEST_ROUTER_IP),
+            ),
+            make_inventory_device(
+                hostname="br01-sw01",
+                host=str(TEST_SWITCH_IP),
+            ),
+        ]
+    )
+    router_state = DeviceState(
+        hostname="br01-rtr01",
+        interfaces=[],
+        routes=[],
+    )
+    router_report = ValidationReport(
+        hostname="br01-rtr01",
+        checks=[
+            ValidationCheck(
+                name="router-check",
+                status=ValidationStatus.PASS,
+                message="Router matches expectation",
+            )
+        ],
+    )
+    approve_mock = Mock()
+
+    with (
+        patch(
+            "network_automation_platform.branch_deployment."
+            "collect_device_state",
+            side_effect=[
+                router_state,
+                StateCollectionError(
+                    "Unable to collect device state from br01-sw01: "
+                    "connection refused"
+                ),
+            ],
+        ) as collect_mock,
+        patch(
+            "network_automation_platform.branch_deployment."
+            "validate_device_against_desired_state",
+            return_value=router_report,
+        ),
+        patch(
+            "network_automation_platform.branch_deployment."
+            "deploy_inventory_device",
+        ) as deploy_mock,
+        pytest.raises(StateCollectionError),
+    ):
+        deploy_branch(
+            "branch-01",
+            intent_path=Path("intent/branches/branch-01.yaml"),
+            inventory=inventory,
+            settings=ConnectionSettings(
+                username="netdevops",
+                password=SecretStr("test"),
+                ssh_config_file=Path("/tmp/lab_config"),
+                ssh_known_hosts_file=Path("/tmp/known_hosts"),
+            ),
+            approve=approve_mock,
+        )
+
+    assert collect_mock.call_count == 2
+    approve_mock.assert_not_called()
     deploy_mock.assert_not_called()
 
 def test_deploy_branch_blocks_unsupported_drift() -> None:

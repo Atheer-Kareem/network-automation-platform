@@ -1,3 +1,4 @@
+import traceback
 from ipaddress import IPv4Address, IPv4Network
 from pathlib import Path
 from unittest.mock import MagicMock, call, patch
@@ -439,6 +440,78 @@ def test_collect_device_state() -> None:
         call("show ip route"),
         call("show ip ospf neighbor"),
     ]
+
+
+@pytest.mark.parametrize(
+    ("error_message", "expected_context", "expects_redaction"),
+    [
+        pytest.param(
+            "connection refused",
+            "connection refused",
+            False,
+            id="unreachable-device",
+        ),
+        pytest.param(
+            "authentication failed using credential-must-not-appear",
+            "authentication failed using",
+            True,
+            id="authentication-failure",
+        ),
+        pytest.param(
+            "host key verification failed",
+            "host key verification failed",
+            False,
+            id="ssh-host-key-failure",
+        ),
+    ],
+)
+def test_collect_device_state_wraps_connection_open_failures(
+    error_message: str,
+    expected_context: str,
+    expects_redaction: bool,
+) -> None:
+    device = InventoryDevice(
+        hostname="br01-rtr01",
+        host=str(TEST_ROUTER_IP),
+        port=22,
+        driver="cisco_ios",
+    )
+    configured_password = "credential-must-not-appear"
+    settings = ConnectionSettings(
+        username="netdevops",
+        password=SecretStr(configured_password),
+        ssh_config_file=Path("inventory/ssh/lab_config"),
+        ssh_known_hosts_file=Path("inventory/ssh/known_hosts"),
+    )
+    connection = MagicMock()
+    connection.__enter__.side_effect = RuntimeError(error_message)
+
+    with patch(
+        "network_automation_platform.collectors.cisco_ios."
+        "build_device_connection",
+        return_value=connection,
+    ), pytest.raises(StateCollectionError) as exc_info:
+        collect_device_state(device, settings)
+
+    message = str(exc_info.value)
+    formatted_traceback = "".join(
+        traceback.format_exception(
+            exc_info.type,
+            exc_info.value,
+            exc_info.tb,
+        )
+    )
+    assert "br01-rtr01" in message
+    assert expected_context in message
+    assert configured_password not in message
+    assert configured_password not in formatted_traceback
+    assert ("<redacted>" in message) is expects_redaction
+    assert (
+        "<redacted>" in formatted_traceback
+    ) is expects_redaction
+    assert "br01-rtr01" in formatted_traceback
+    assert expected_context in formatted_traceback
+    connection.send_command.assert_not_called()
 
 def test_parse_ip_ospf_neighbor() -> None:
     parsed_output = [
