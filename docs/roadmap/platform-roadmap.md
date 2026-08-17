@@ -50,7 +50,7 @@ Explicit deployment outcome
 
 This workflow has been validated against the representative CML branch environment using real configuration drift.
 
-V1 is not complete, but the core architecture and write boundary have been proven.
+V1 is complete against its defined engineering acceptance criteria. Publication of the `v1.0.0` tag and GitHub release remains pending merge of the release candidate.
 
 ## Roadmap Principles
 
@@ -180,7 +180,7 @@ Targeted VLAN remediation now supports missing managed VLANs and VLAN name misma
 
 Targeted switchport remediation now supports administrative-mode mismatch, access-VLAN mismatch, and trunk allowed-VLAN mismatch.
 
-### Remaining V1 Work
+### V1 Completion Record
 
 #### 1. Branch-wide deployment preflight [Completed]
 
@@ -241,7 +241,7 @@ Administrative-mode changes are rendered as complete desired switchport configur
 
 Missing switchport state, `switchport_enabled` mismatch, native-VLAN mismatch, and mixed supported/unsupported drift remain blocked. Operational mode is collected but not currently desired-state validated. IOS voice-VLAN and empty allowed-VLAN semantics are not implemented.
 
-#### 5. Routing and OSPF validation [In Progress]
+#### 5. Routing and OSPF validation [Completed]
 
 Extend validation beyond configuration presence toward network behavior.
 
@@ -292,7 +292,9 @@ Systematically exercise important failure conditions, including:
 
 The automated coverage audit and current evidence are recorded in the [V1 failure-path matrix](../acceptance/v1-failure-path-matrix.md). All eleven paths have deterministic automated evidence, and the selected safe live subset for unreachable, authentication, and host-key failures completed successfully. Destructive or unsafe post-write failure injection is intentionally excluded. Failure-path hardening is complete for V1.
 
-#### 8. V1 acceptance and release
+#### 8. V1 acceptance and release [Completed]
+
+Release-gate evidence and the completed final representative scenario are recorded in the [V1 acceptance report](../acceptance/v1-acceptance-report.md).
 
 V1 is complete when:
 
@@ -305,7 +307,7 @@ V1 is complete when:
 - representative CML acceptance scenarios pass; and
 - architecture documentation accurately describes the implemented system.
 
-At that point V1 should be tagged as a stable project milestone.
+All defined V1 capability and release criteria are satisfied. Engineering acceptance is complete and version `1.0.0` is prepared in the release candidate. The `v1.0.0` tag and GitHub release must be created only after the reviewed release PR is merged to `main`.
 
 ## V1.5 — Model-Driven and Device-Automation Bridge
 
