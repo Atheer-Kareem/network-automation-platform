@@ -90,7 +90,8 @@ def build_branch_remediation(
         )
 
         commands = render_device_remediation(
-            remediation_plan
+            remediation_plan,
+            platform=desired_device.platform,
         )
 
         results.append(

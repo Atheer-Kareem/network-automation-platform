@@ -82,7 +82,8 @@ def plan_branch(
         )
 
         remediation_commands = render_device_remediation(
-            remediation_plan
+            remediation_plan,
+            platform=desired_device.platform,
         )
         candidate_config = render_device(desired_device)
 

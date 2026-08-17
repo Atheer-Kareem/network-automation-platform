@@ -392,11 +392,13 @@ def validate_device_state(
                     message=(
                         f"Switchport {expected.interface} is missing"
                     ),
+                    reason="missing",
                 )
             )
             continue
 
         failures: list[str] = []
+        mismatched_fields: list[str] = []
 
         if (
             expected.switchport_enabled is not None
@@ -408,6 +410,7 @@ def validate_device_state(
                 f"{expected.switchport_enabled}, "
                 f"got {actual.switchport_enabled}"
             )
+            mismatched_fields.append("switchport_enabled")
 
         if (
             expected.administrative_mode is not None
@@ -419,6 +422,7 @@ def validate_device_state(
                 f"{expected.administrative_mode}, "
                 f"got {actual.administrative_mode}"
             )
+            mismatched_fields.append("administrative_mode")
 
         if (
             expected.access_vlan is not None
@@ -428,6 +432,7 @@ def validate_device_state(
                 f"access VLAN expected {expected.access_vlan}, "
                 f"got {actual.access_vlan}"
             )
+            mismatched_fields.append("access_vlan")
 
         if (
             expected.native_vlan is not None
@@ -437,6 +442,7 @@ def validate_device_state(
                 f"native VLAN expected {expected.native_vlan}, "
                 f"got {actual.native_vlan}"
             )
+            mismatched_fields.append("native_vlan")
 
         if expected.allowed_vlans is not None:
             expected_vlans = set(expected.allowed_vlans)
@@ -448,6 +454,7 @@ def validate_device_state(
                     f"{sorted(expected_vlans)}, "
                     f"got {sorted(actual_vlans)}"
                 )
+                mismatched_fields.append("allowed_vlans")
 
         if failures:
             checks.append(
@@ -455,6 +462,8 @@ def validate_device_state(
                     name=f"switchport:{expected.interface}",
                     status=ValidationStatus.FAIL,
                     message="; ".join(failures),
+                    reason="mismatch",
+                    mismatched_fields=mismatched_fields,
                 )
             )
         else:

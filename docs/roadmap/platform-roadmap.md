@@ -175,6 +175,8 @@ Targeted interface remediation now supports missing managed interfaces/SVIs, des
 
 Targeted VLAN remediation now supports missing managed VLANs and VLAN name mismatch.
 
+Targeted switchport remediation now supports administrative-mode mismatch, access-VLAN mismatch, and trunk allowed-VLAN mismatch.
+
 ### Remaining V1 Work
 
 #### 1. Branch-wide deployment preflight [Completed]
@@ -224,19 +226,19 @@ VLAN status mismatch remains validation-only operational drift and is not eligib
 
 Mixed configurable and operational VLAN drift is blocked rather than partially remediated.
 
-#### 4. Switchport remediation
+#### 4. Switchport remediation [Completed]
 
-Introduce controlled switchport remediation for supported cases such as:
+Controlled switchport remediation now supports:
 
-- access mode mismatch;
+- administrative-mode mismatch;
 - access VLAN mismatch;
-- voice VLAN mismatch;
-- trunk mode mismatch; and
 - trunk allowed-VLAN mismatch.
 
-Potentially disruptive trunk semantics must be designed explicitly rather than inferred from string differences.
+Administrative-mode changes are rendered as complete desired switchport configuration units. Access mode includes the desired access VLAN; trunk mode includes profile-required encapsulation and the complete non-empty desired allowed-VLAN list. Narrow VLAN-only drift remains narrow when mode already matches.
 
-#### 5. Routing and OSPF validation
+Missing switchport state, `switchport_enabled` mismatch, native-VLAN mismatch, and mixed supported/unsupported drift remain blocked. Operational mode is collected but not currently desired-state validated. IOS voice-VLAN and empty allowed-VLAN semantics are not implemented.
+
+#### 5. Routing and OSPF validation [Next]
 
 Extend validation beyond configuration presence toward network behavior.
 
