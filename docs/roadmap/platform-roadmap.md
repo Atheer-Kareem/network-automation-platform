@@ -274,7 +274,7 @@ Reporting remains separate from orchestration and device execution. It never aut
 
 Implementation, automated coverage, and live acceptance of schema-version `1` JSON evidence are complete.
 
-#### 7. Failure-path hardening [In Progress]
+#### 7. Failure-path hardening [Completed]
 
 Systematically exercise important failure conditions, including:
 
@@ -290,7 +290,7 @@ Systematically exercise important failure conditions, including:
 - post-change validation failure; and
 - already-compliant state.
 
-The automated coverage audit and current evidence are recorded in the [V1 failure-path matrix](../acceptance/v1-failure-path-matrix.md). All eleven paths have deterministic automated evidence. Safe read-only acceptance of unreachable, authentication, and host-key failures remains pending; destructive post-write failure injection is intentionally excluded.
+The automated coverage audit and current evidence are recorded in the [V1 failure-path matrix](../acceptance/v1-failure-path-matrix.md). All eleven paths have deterministic automated evidence, and the selected safe live subset for unreachable, authentication, and host-key failures completed successfully. Destructive or unsafe post-write failure injection is intentionally excluded. Failure-path hardening is complete for V1.
 
 #### 8. V1 acceptance and release
 

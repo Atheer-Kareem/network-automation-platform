@@ -42,7 +42,7 @@ The controlled deployment workflow has been validated against real lab drift fro
 
 V1 is not yet complete.
 
-Deployment-report live acceptance is complete. Remaining V1 work focuses on selected safe failure-path acceptance and final representative acceptance.
+Deployment-report live acceptance and failure-path hardening are complete. Remaining V1 work is final representative V1 acceptance and release.
 
 Future development is tracked through a defined V1 → V1.5 → V2 roadmap.
 
@@ -386,9 +386,7 @@ V1 proves the core network automation architecture and controlled execution mode
 Remaining V1 work includes:
 
 ```text
-Failure-path hardening
-        ↓
-Final CML acceptance
+Final representative V1 acceptance
         ↓
 V1 release
 ```

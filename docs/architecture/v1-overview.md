@@ -507,11 +507,11 @@ Controlled deployment currently has the following limitations:
 - OSPF operational failures are validation-only and are not enabled for automatic remediation;
 - operational interface status/protocol drift, VLAN status drift, missing switchport state, `switchport_enabled` drift, native-VLAN drift, and mixed supported/unsupported switchport drift are not enabled for automatic remediation;
 - deployment evidence is schema-versioned JSON, but durable storage, retention, and external audit integration are not implemented; and
-- systematic failure-path acceptance coverage is still being expanded.
+- systematic failure-path coverage is complete: safe connection failures are live accepted, while unsafe or destructive scenarios retain deterministic automated evidence.
 
 These constraints are intentional at the current stage of V1.
 
-Live schema-version `1` deployment-report acceptance and live CML acceptance of OSPF adjacency and learned-route outcome validation are complete. The remaining V1 work focuses on selected safe failure-path acceptance and final representative acceptance before declaring V1 complete. Initial connection failures occur before a branch deployment result exists, so V1 reports CLI exit 2 without a JSON deployment artifact for those attempts.
+Live schema-version `1` deployment-report acceptance, live CML acceptance of OSPF adjacency and learned-route outcome validation, and systematic failure-path coverage are complete. Safe unreachable, authentication, and strict host-key connection failures are live accepted; unsafe or destructive scenarios remain deterministic automated evidence rather than live injections. The remaining V1 work is final representative acceptance and release. Initial connection failures occur before a branch deployment result exists, so V1 reports CLI exit 2 without a JSON deployment artifact for those attempts.
 
 ## Out of Scope for V1
 
