@@ -132,7 +132,7 @@ Required learned prefixes are explicit in the parent OSPF routing context and in
 
 The learned-route outcome validates the prefix, OSPF protocol, expected peer next hop, and mapped WAN interface. Additional routes remain permitted. Administrative distance, metric, route subtype, and ECMP cardinality are not validated.
 
-OSPF adjacency and learned-route outcomes are operational validation only. OSPF router ID is not validated, unexpected additional neighbors are not rejected, and OSPF failures cannot produce remediation. They block branch deployment before writes. OSPF adjacency live CML acceptance is complete; learned-route outcome live CML acceptance remains pending.
+OSPF adjacency and learned-route outcomes are operational validation only. OSPF router ID is not validated, unexpected additional neighbors are not rejected, and OSPF failures cannot produce remediation. They block branch deployment before writes. Live CML acceptance of both OSPF adjacency and learned-route outcome validation is complete.
 
 ## Management Plane Separation
 
@@ -145,3 +145,5 @@ The out-of-band management network is an execution-environment concern used to p
 Out-of-band addressing must therefore not be derived from branch intent or rendered into branch desired configuration or remediation.
 
 This separation prevents branch configuration changes from unnecessarily modifying the management path used by the automation platform.
+
+This dedicated per-device OOB design remains authoritative for branch-01 and its V1 regression behavior. It is not the permanent general management-domain model. The preferred V1.5 IOS XE scenario will investigate a routed management loopback while preserving the principle that an acceptable management/control path must be freshly proven before a write. Exact safety semantics remain a later evidence-driven decision.

@@ -511,24 +511,22 @@ Controlled deployment currently has the following limitations:
 
 These constraints are intentional at the current stage of V1.
 
-Live schema-version `1` deployment-report acceptance, live CML acceptance of OSPF adjacency and learned-route outcome validation, and systematic failure-path coverage are complete. Safe unreachable, authentication, and strict host-key connection failures are live accepted; unsafe or destructive scenarios remain deterministic automated evidence rather than live injections. The remaining V1 work is final representative acceptance and release. Initial connection failures occur before a branch deployment result exists, so V1 reports CLI exit 2 without a JSON deployment artifact for those attempts.
+Live schema-version `1` deployment-report acceptance, live CML acceptance of OSPF adjacency and learned-route outcome validation, and systematic failure-path coverage are complete. Safe unreachable, authentication, and strict host-key connection failures are live accepted; unsafe or destructive scenarios remain deterministic automated evidence rather than live injections. Final representative acceptance passed, and V1.0.0 is released and published. No V1 implementation or release work remains. Initial connection failures occur before a branch deployment result exists, so V1 reports CLI exit 2 without a JSON deployment artifact for those attempts.
 
 ## Out of Scope for V1
 
 The following capabilities are deliberately deferred beyond the V1 foundation:
 
-### V1.5
+### V1.5 production scope
 
-- YANG-driven automation;
-- NETCONF device workflows;
-- RESTCONF device workflows;
-- `ncclient`;
-- Netmiko practice and comparison;
-- Ansible network automation;
-- advanced Jinja2;
-- pyATS integration;
-- IOS XE Day-0 and on-box automation; and
-- model-driven telemetry foundations.
+- preserve branch-01 and the released Cisco IOS/Scrapli lifecycle;
+- add one production Cisco IOS XE NETCONF read/write path;
+- normalize interface state from CLI and NETCONF;
+- evolve access and composition backward-compatibly;
+- use fresh safety evidence and approved-plan equivalence at the write boundary; and
+- introduce typed non-CLI execution and versioned evidence only when the first stable NETCONF write requires them.
+
+RESTCONF write parity, Netmiko, Ansible, Jinja2, pyATS, IOS XE lifecycle labs, and telemetry remain valid future or parallel in-repository work but are not V1.5 production-package completion criteria.
 
 ### V2 and Later
 
@@ -558,7 +556,7 @@ Deferring these capabilities prevents V1 from expanding beyond its primary objec
 
 This document describes the implemented and intended architecture of V1.
 
-Development beyond the V1 architecture is tracked separately so future technologies do not become requirements of the current platform design.
+Development beyond the V1 architecture is tracked separately so future technologies do not become requirements of the released platform design.
 
 The planned progression is:
 
@@ -573,7 +571,7 @@ V2
 Broader NetDevOps automation ecosystem
 ```
 
-Future development includes areas such as model-driven device automation, automation frameworks, CI/CD, programmable CML environments, enterprise controller automation, telemetry, security hardening, and AI/MCP integration.
+V1.5's authoritative direction is defined in the [V1.5 Architecture Overview](v1.5-overview.md). Broader future development still includes automation frameworks, CI/CD, programmable CML environments, enterprise controller automation, telemetry, security hardening, and AI/MCP integration.
 
 These capabilities are introduced only where they provide justified engineering value and must preserve the platform's existing validation, safety, and execution boundaries.
 

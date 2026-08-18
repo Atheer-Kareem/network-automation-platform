@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document maps the current CCNP Automation certification objectives to the engineering roadmap for the Network Automation Platform and its companion automation labs.
+This document maps the current CCNP Automation certification objectives to the engineering roadmap for the Network Automation Platform and related practical work in the same canonical repository.
 
 The certification is used as an external competency framework.
 
@@ -11,6 +11,8 @@ It does not define the architecture of the flagship platform.
 The objective is not merely to prepare for two exams.
 
 The objective is to develop practical, demonstrable competence across the technologies and engineering behaviors represented by the certification while producing portfolio evidence that is useful independently of the certification.
+
+Phase labels in this document describe learning and evidence timing. They do not make every listed technology a production-package release criterion. The authoritative `v1.5.0` product contract is the narrower NETCONF path defined in the [V1.5 architecture overview](../architecture/v1.5-overview.md); other V1.5-labelled objectives may proceed as parallel, isolated practical work.
 
 ## Blueprint Baseline
 
@@ -46,7 +48,7 @@ Certification objectives are mapped to one or more forms of evidence:
 
 ```text
 flagship platform implementation
-companion automation lab
+in-repository practical lab
 CML exercise
 Cisco-hosted sandbox
 troubleshooting exercise
@@ -69,7 +71,7 @@ Does the capability improve the Network Automation Platform architecture?
         │
         └── No
               ↓
-            implement it in a companion lab
+            implement it in an isolated in-repository lab
             or focused practical exercise
 ```
 
@@ -227,7 +229,7 @@ V1.5
 
 **Primary evidence**
 
-- companion enterprise automation lab;
+- isolated in-repository enterprise automation lab;
 - same representative branch problems used by the flagship platform;
 - Ansible inventory and variables;
 - network collections/modules;
@@ -1179,7 +1181,7 @@ V1.5
 
 Build and understand a repeatable Day-0 provisioning workflow.
 
-The implementation may remain in the companion lab if it does not naturally belong in the flagship platform.
+The implementation may remain isolated practical work if it does not naturally belong in the flagship platform.
 
 **Current status**
 
@@ -1227,7 +1229,7 @@ Develop practical exercises around:
 - IOS XE Guest Shell; and
 - on-box Python.
 
-These are primarily companion-lab capabilities unless a justified flagship use case emerges.
+These are primarily isolated practical capabilities unless a justified flagship use case emerges.
 
 **Current status**
 
@@ -1340,7 +1342,7 @@ Exercise automation scenarios involving:
 - segmentation; and
 - security-controller APIs.
 
-ISE is a likely companion-lab platform for this work.
+ISE is a likely isolated practical environment for this work.
 
 **Current status**
 
@@ -1604,9 +1606,9 @@ secure automation boundaries
 AI/MCP integration behind safety controls
 ```
 
-## Companion Lab Evidence
+## In-Repository Practical Evidence
 
-A planned companion environment can provide breadth without distorting the flagship architecture.
+Isolated practical work can provide breadth without distorting the flagship architecture or production dependency set.
 
 Likely areas include:
 
@@ -1632,13 +1634,7 @@ security automation
 webhooks
 ```
 
-A suitable future repository name is:
-
-```text
-enterprise-network-automation-lab
-```
-
-The repository should still use professional engineering practices rather than becoming an unstructured collection of certification scripts.
+The exact directory structure is intentionally undecided until the first concrete asset establishes its ownership and dependency needs. Practical work must still use professional engineering practices rather than becoming an unstructured collection of certification scripts. It must not import secrets or trust state, enter the production package accidentally, or create an alternate uncontrolled write path.
 
 ## Portfolio Evidence Standard
 
@@ -1770,7 +1766,7 @@ Review this document when:
 - Cisco publishes a new ENAUTO blueprint;
 - a roadmap phase is completed;
 - a major platform capability is added;
-- a companion lab is completed; or
+- an in-repository practical lab is completed; or
 - exam preparation begins.
 
 The official Cisco exam topics always take precedence over this internal mapping.

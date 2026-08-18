@@ -10,7 +10,7 @@ Certification objectives, including CCNP Automation, are used to identify useful
 
 A technology is incorporated into the Network Automation Platform only when it strengthens the platform design or provides a justified implementation capability.
 
-Broader technology practice that does not belong naturally in the flagship architecture may be implemented in separate companion labs.
+Broader technology practice that does not belong naturally in the flagship runtime may be implemented as isolated practical work in this repository. It does not become a production-package release gate merely because it shares the repository.
 
 ## Current Position
 
@@ -50,7 +50,7 @@ Explicit deployment outcome
 
 This workflow has been validated against the representative CML branch environment using real configuration drift.
 
-V1 is complete against its defined engineering acceptance criteria. Publication of the `v1.0.0` tag and GitHub release remains pending merge of the release candidate.
+V1 is complete against its defined engineering acceptance criteria. Version `1.0.0` is tagged and published as the V1.0.0 GitHub release. No V1 implementation or release work remains.
 
 ## Roadmap Principles
 
@@ -81,10 +81,10 @@ failure handling
 auditability
 ```
 
-Broader automation technologies may be exercised in a companion environment:
+Broader automation technologies may be exercised in isolated in-repository practical tracks:
 
 ```text
-enterprise-network-automation-lab
+network-automation-platform
     ↓
 alternative frameworks
 model-driven protocols
@@ -94,7 +94,7 @@ technology-specific labs
 certification coverage
 ```
 
-The companion environment does not replace or fragment the flagship platform.
+Production runtime and practical tracks must remain separate in ownership, dependency sets, CI gates, credentials/trust state, and support level. A second repository is considered only when an independent ownership, security, deployment, access-control, lifecycle, licensing, or release-cadence boundary exists.
 
 ### Unsafe automation fails closed
 
@@ -307,161 +307,91 @@ V1 is complete when:
 - representative CML acceptance scenarios pass; and
 - architecture documentation accurately describes the implemented system.
 
-All defined V1 capability and release criteria are satisfied. Engineering acceptance is complete and version `1.0.0` is prepared in the release candidate. The `v1.0.0` tag and GitHub release must be created only after the reviewed release PR is merged to `main`.
+All defined V1 capability and release criteria are satisfied. Engineering acceptance, the `v1.0.0` tag, and GitHub release publication are complete.
 
 ## V1.5 — Model-Driven and Device-Automation Bridge
 
 ### Objective
 
-Expand the platform and associated lab work beyond CLI-centric automation into model-driven network management and commonly used network automation frameworks.
+Preserve the released V1 deterministic lifecycle and branch-01 compatibility while adding one production Cisco IOS XE NETCONF read/write path.
 
-V1.5 bridges the custom platform architecture built in V1 with standards-based and ecosystem automation methods.
+The authoritative architecture and completion contract are defined in the [V1.5 architecture overview](../architecture/v1.5-overview.md) and [ADR-0005](../adr/0005-v15-product-scope-and-compatibility.md).
 
-### YANG and Data Models
+### Production Capability Sequence
 
-Develop practical competence with:
+The expected engineering sequence is:
 
-- YANG fundamentals;
-- YANG trees;
-- native Cisco models;
-- IETF models;
-- OpenConfig models;
-- JSON and XML representations; and
-- model discovery and inspection.
+1. establish this architecture and documentation baseline;
+2. verify a minimal Cisco Catalyst 8000V IOS XE 17.15.01a scenario in CML 2.10, including the preferred routed management-loopback direction;
+3. normalize access and inventory backward-compatibly while retaining current `inventory/lab.yaml` behavior;
+4. introduce one explicit application composition boundary shared by validate, plan, and deploy;
+5. inspect trusted IOS XE capabilities/models and normalize a narrow NETCONF interface-state read meaningfully with CLI state;
+6. rebuild and validate fresh management-safety evidence immediately before writes;
+7. recompute the required remediation and fail closed unless it is equivalent to the exact approved immutable change;
+8. introduce the smallest typed NETCONF execution artifact and approval binding required by the first real write;
+9. execute one harmless description-only NETCONF remediation on a non-management, non-routing-critical interface and introduce schema-version `2` evidence without changing schema version `1`;
+10. harden adapter security and failure paths, run branch-01 regression, and complete final cross-path CML acceptance; and
+11. release `v1.5.0` only after the measurable completion contract passes.
 
-Where practical, use Cisco YANG tooling to inspect and validate models.
+The sequence describes dependencies, not fixed PR numbering. Safety, compatibility, automated evidence, and focused live acceptance accompany the increments they affect rather than being deferred entirely to the end.
 
-### NETCONF
+### Concrete Model-Driven Scenario
 
-Implement and troubleshoot NETCONF workflows including:
+Branch-01 remains unchanged as the V1 regression/reference environment. The preferred new scenario is a second representative branch using the current branch shape initially, with a Cisco Catalyst 8000V router as the model-driven target. Exact topology, addressing, interface mappings, bootstrap, routing, and YANG paths remain subject to local feasibility evidence.
 
-- capability discovery;
-- datastore operations;
-- filters;
-- RPCs;
-- configuration retrieval;
-- configuration modification;
-- XML payloads;
-- error handling; and
-- device capability differences.
+The first read capability is interface state. Full NETCONF parity with routes, OSPF, VLANs, and switchports is not required. The first write is a description-only change on a non-management, non-routing-critical interface. Existing CLI collection may provide complete post-change observation for that first NETCONF write.
 
-Use `ncclient` for practical Python automation.
+### Compatibility and Safety Gates
 
-### RESTCONF
+V1.5 preserves:
 
-Implement RESTCONF device automation including:
+- branch-01 intent and current inventory compatibility;
+- existing validate, plan, and deploy behavior;
+- Cisco IOS/Scrapli collection and execution;
+- targeted remediation and all V1 fail-closed guarantees; and
+- deployment-report schema version `1`.
 
-- authentication;
-- resource paths;
-- GET operations;
-- configuration changes;
-- JSON payloads;
-- YANG-derived resource structures;
-- HTTP status handling;
-- error responses; and
-- idempotent automation patterns.
+Immediately before every eventual V1.5 write, trusted target access and identity, a freshly rebuilt management-safety expectation, fresh required state, and approved-plan equivalence must pass. The exact approved artifact is then executed, followed by fresh complete post-change collection and validation. This reduces but does not eliminate TOCTOU risk.
 
-Where architecturally justified, introduce a RESTCONF execution or state-collection adapter to the flagship platform rather than replacing the existing CLI implementation.
+### Composition and Evidence Gates
 
-### Alternative Python Device Automation
+Validate, plan, and deploy share an explicit application composition root or factory. Read, render, execute, discovery, and safety responsibilities remain separate. Declared/allowed capabilities constrain live discovery; discovery never silently authorizes or selects an unapproved mechanism. Unsupported combinations fail closed. A dynamic plugin framework is not required.
 
-Exercise Netmiko as an additional network-device automation library.
+Read-only NETCONF precedes final write-artifact design. The first stable NETCONF write drives the smallest immutable typed execution artifact. Approval preview and machine payload derive from that artifact. Schema version `1` remains unchanged; schema version `2` begins only when durable model-driven execution evidence exists.
 
-This does not replace Scrapli in the flagship platform.
+### Parallel Learning and Portfolio Track
 
-The purpose is to understand implementation differences, operational behavior, failure handling, and common enterprise tooling.
+The following remain important engineering or certification-aligned practical areas in this repository, isolated from production runtime dependencies and package release gates:
 
-### Ansible
+- RESTCONF and YANG exploration beyond the selected NETCONF implementation;
+- Ansible network automation;
+- Netmiko comparison;
+- Jinja2 where a real templating problem exists;
+- pyATS/Genie independent acceptance evidence;
+- model-driven telemetry with a selected consumer;
+- Day-0/ZTP;
+- Guest Shell and on-box Python; and
+- EEM.
 
-Develop practical network automation using Ansible for:
-
-- inventory;
-- variables;
-- playbooks;
-- network modules;
-- configuration management;
-- compliance;
-- idempotency;
-- templates;
-- failure handling; and
-- repeatable branch operations.
-
-The same branch problems used by the flagship platform should be reimplemented selectively with Ansible to compare approaches.
-
-### Jinja2
-
-Develop advanced templating competence including:
-
-- variables;
-- conditionals;
-- loops;
-- filters;
-- reusable templates; and
-- deterministic configuration rendering.
-
-### pyATS
-
-Introduce pyATS as an independent validation framework.
-
-Use it for:
-
-- operational checks;
-- pre-change validation;
-- post-change validation;
-- snapshots;
-- comparison;
-- topology-aware testing; and
-- later CI/CD integration.
-
-The existing platform validation engine remains valuable and is not replaced merely to use pyATS.
-
-### IOS XE On-Box and Day-0 Automation
-
-Practice enterprise device automation capabilities where suitable, including:
-
-- EEM;
-- Guest Shell;
-- on-box Python; and
-- Day-0 / ZTP concepts and implementation.
-
-These capabilities may live primarily in companion labs unless a clear flagship-platform requirement emerges.
-
-### Telemetry Foundations
-
-Establish model-driven telemetry foundations, including:
-
-- subscriptions;
-- telemetry models;
-- data transport;
-- collection;
-- interpretation; and
-- operational use cases.
-
-V1.5 focuses on understanding and producing telemetry.
-
-Broader operational integration belongs in V2.
+pyATS may provide a small independent final-acceptance cross-check. It does not replace NAP validation and is not a production deployment-service dependency by default. Production RESTCONF write parity is not a `v1.5.0` requirement unless a later ADR establishes a distinct need.
 
 ### V1.5 Completion Criteria
 
-V1.5 is complete when the project and companion labs demonstrate practical working knowledge of:
+V1.5 is complete when measurable evidence proves:
 
-```text
-YANG
-NETCONF
-RESTCONF
-ncclient
-Netmiko
-Ansible
-Jinja2
-pyATS
-IOS XE model-driven automation
-Day-0 / on-box automation
-telemetry foundations
-```
+- the released branch-01 path remains compatible;
+- one reproducible IOS XE model-driven scenario exists;
+- access/composition distinguishes platform, endpoint, and selected access method without transport policy entering domain logic;
+- CLI and NETCONF normalize interface state meaningfully;
+- validate, plan, and deploy share one explicit composition boundary;
+- immediate pre-write safety uses fresh evidence and stale approved plans fail closed;
+- one harmless NETCONF remediation passes the V1 controlled lifecycle;
+- non-CLI evidence is explicitly versioned without breaking schema version `1`;
+- adapter trust, authentication, identity, capability, error-redaction, execution, and post-check failures are tested;
+- final CML acceptance proves branch-01 regression and the selected IOS XE scenario; and
+- documentation and ADRs accurately describe behavior and limitations.
 
-Completion requires more than successful happy-path labs.
-
-Important technologies should also be deliberately broken, diagnosed, and recovered.
+Learning exercises are not production-package completion criteria.
 
 ## V2 — NetDevOps Automation Ecosystem
 
@@ -606,7 +536,7 @@ Target technologies include, where relevant to the current certification and eng
 
 Controller-specific exercises do not need to be forced into the flagship platform.
 
-They may be implemented in the companion enterprise automation lab when that produces a cleaner design.
+They may be implemented as isolated in-repository practical work when that produces a cleaner design.
 
 ## AI-Assisted Network Automation
 
@@ -642,7 +572,7 @@ Direct unrestricted LLM-to-device configuration is not an intended platform desi
 
 ## V2 Completion Criteria
 
-V2 is complete when the combined platform and companion automation environment demonstrate:
+V2 is complete when the combined platform and isolated practical environments demonstrate:
 
 - declarative infrastructure automation;
 - GitLab-based network CI/CD;
@@ -655,38 +585,22 @@ V2 is complete when the combined platform and companion automation environment d
 - AI/MCP integration behind explicit safety boundaries; and
 - end-to-end automation workflows that can be explained, tested, and reproduced.
 
-## Companion Automation Environment
+## Single-Repository Production and Practical Tracks
 
-Not every technology belongs in the Network Automation Platform repository.
-
-A separate companion project may be maintained for automation technologies whose primary purpose is breadth, comparison, controller experimentation, or certification-aligned practice.
-
-A suitable structure is:
+The Network Automation Platform remains the single canonical repository by default:
 
 ```text
 network-automation-platform
     ↓
-flagship engineering system
-production-style architecture
-safe deployment
-validation
-deep implementation
-
-enterprise-network-automation-lab
-    ↓
-technology breadth
-framework comparison
-controller APIs
-protocol labs
-CI/CD exercises
-certification evidence
+production package and maintained integrations
+intent, inventory, topology, and evidence
+isolated practical protocol/framework work
+documentation and certification coverage
 ```
 
-This is not a decomposition of the flagship platform into multiple services.
+Same repository does not mean one Python package, dependency group, CI gate, credential boundary, or support level. Practical work must not become an alternate uncontrolled device-write path or a production runtime dependency by accident. Exact directories are introduced only with concrete assets.
 
-The two repositories have different responsibilities.
-
-The flagship platform remains cohesive.
+Repository separation remains possible only when independent ownership, deployment, security, access control, lifecycle, licensing, or release cadence justifies it.
 
 ## Certification Alignment
 
@@ -697,7 +611,7 @@ The certification blueprint influences the technologies and practical exercises 
 A separate coverage document maps certification objectives to:
 
 - platform functionality;
-- companion labs;
+- in-repository practical work;
 - theory;
 - troubleshooting exercises;
 - Cisco-hosted environments;
