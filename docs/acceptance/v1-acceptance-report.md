@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document is the release gate for the bounded V1 safe automation platform. It audits the implemented system against the eight roadmap completion criteria and consolidates existing implementation, automated, documentation, and live evidence. All engineering acceptance criteria now pass. Release publication remains pending review and merge of the release candidate, followed by tagging merged `main` and creating the GitHub release.
+This document records the release gate for the bounded V1 safe automation platform. It audited the implemented system against the eight roadmap completion criteria and consolidated implementation, automated, documentation, and live evidence. All engineering acceptance criteria passed. The reviewed release candidate was subsequently merged, tagged, and published as V1.0.0.
 
 ## Release criteria
 
@@ -151,9 +151,9 @@ Initial connection failures occur before a branch deployment result exists and t
 
 ## Release decision
 
-**PASS.** All eight release criteria are supported by implementation, automated, documentation, and live evidence. V1 acceptance is complete against its defined engineering scope. Release publication remains pending review and merge of this release candidate.
+**PASS.** All eight release criteria are supported by implementation, automated, documentation, and live evidence. V1 acceptance is complete against its defined engineering scope. V1.0.0 was subsequently released and published.
 
-The proposed release sequence is:
+The completed release sequence was:
 
 ```text
 V1 acceptance complete
@@ -167,4 +167,4 @@ tag merged main as v1.0.0
 create the GitHub release
 ```
 
-The project version is prepared as `1.0.0`. No tag or GitHub release is created in this phase.
+The historical acceptance phase itself did not create a tag or GitHub release. Those publication steps are now complete.

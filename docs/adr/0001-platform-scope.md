@@ -20,7 +20,7 @@ Creating separate repositories for each concern immediately would introduce oper
 
 ## Decision
 
-V1 will use a modular single repository.
+The project will use a modular single canonical repository by default.
 
 Components will maintain clear internal boundaries so they can be extracted into independent repositories later if ownership, deployment, security, or release requirements justify separation.
 
@@ -28,17 +28,11 @@ Repository boundaries will follow domain ownership and lifecycle boundaries rath
 
 ## Scope Clarification
 
-This decision applies to components that form part of the Network Automation Platform itself.
+This decision applies to production platform components, topology and environment assets, maintained integrations, documentation, and related practical learning work.
 
-A separate companion repository may be used for technology comparison, controller-specific exercises, certification-aligned labs, or other practical work that does not naturally belong to the flagship platform architecture.
+Practical work does not become part of the production Python package merely because it shares the repository. Production and learning areas must preserve explicit ownership, dependency, CI, secret/trust-state, support, and device-write boundaries.
 
-For example:
-
-network-automation-platform = production-style platform implementation
-
-enterprise-network-automation-lab = broader automation practice and technology-specific labs Creating such a companion repository does not represent decomposition of the platform into multiple repositories.
-
-Platform components should still remain within the modular single repository unless independent ownership, lifecycle, security, or deployment requirements justify extraction.
+A separate repository is justified only by a genuine independent ownership, deployment, security, access-control, lifecycle, licensing, or release-cadence boundary. Technology comparison, certification alignment, or use of a different tool is not sufficient by itself.
 
 ## Consequences
 
@@ -49,11 +43,13 @@ Platform components should still remain within the modular single repository unl
 - easier refactoring while architecture evolves
 - easier end-to-end testing
 - less repository-management overhead
+- one discoverable home for production and related practical evidence
 
 ### Negative
 
 - repository responsibilities may broaden over time
 - access-control boundaries are less granular
+- dependency and CI isolation must be maintained deliberately
 - future extraction may require migration work
 
 ## Future Review
@@ -65,3 +61,4 @@ This decision should be revisited when a component develops a genuinely independ
 - ownership model
 - security boundary
 - access-control requirement
+- licensing constraint

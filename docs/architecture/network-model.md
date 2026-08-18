@@ -134,7 +134,17 @@ Branch intent explicitly requires the upstream prefix `10.200.0.1/32` inside the
 
 Validation requires the prefix through OSPF from `10.101.255.2` on `GigabitEthernet0/1`. Additional routes remain permitted, and administrative distance, metric, route subtype, and ECMP cardinality are not validated.
 
-OSPF adjacency and learned-route failures are validation-only, cannot produce targeted remediation, and block deployment before writes. Adjacency live CML acceptance is complete; learned-route outcome implementation is complete but its live CML acceptance remains pending.
+OSPF adjacency and learned-route failures are validation-only, cannot produce targeted remediation, and block deployment before writes. Live CML acceptance of both adjacency and learned-route outcome validation is complete.
+
+## V1.5 Environment Direction
+
+Branch-01 and its dedicated OOB topology remain the V1 regression/reference environment.
+
+The preferred V1.5 model-driven scenario adds a second representative branch using the current branch shape initially. Its intended model-driven router is a Cisco Catalyst 8000V running IOS XE 17.15.01a in CML 2.10, subject to local feasibility verification. The supporting switch, endpoints, links, addressing, interface mappings, bootstrap, and routing details remain intentionally undecided until that verification occurs.
+
+The preferred automation path to the IOS XE router is a stable routed management loopback through the representative enterprise/core path rather than another copy of V1's dedicated per-device lab OOB interface. This is a design direction, not an accepted topology or implemented safety model.
+
+No management VRF, bastion, controller, break-glass path, automatic fallback, or general path taxonomy is implied. The environment feasibility increment must establish the smallest topology and management prerequisites needed for interface-state NETCONF and a harmless description-only remediation.
 
 ## Environment Portability
 
@@ -142,4 +152,4 @@ The current lab uses IOSv and IOSvL2 because they provide a representative Cisco
 
 The platform retains separate platform profiles, including the existing C7200 profile, so logical intent is not tied to a single virtual appliance or lab implementation.
 
-Changing the execution environment should require inventory and platform-profile changes rather than redesigning intent, orchestration, or validation logic.
+Changing interface names within the existing branch shape should require inventory and platform-profile changes rather than domain redesign. A genuinely different managed role or topology may require bounded intent and desired-state evolution; supporting lab nodes do not by themselves justify an arbitrary topology model.

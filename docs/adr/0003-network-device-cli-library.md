@@ -20,13 +20,7 @@ The platform requires a network CLI library that can:
 
 The application architecture must not depend directly on CML, GNS3, EVE-NG, or any other specific lab environment.
 
-The broader platform roadmap now also includes model-driven and alternative device-automation mechanisms during V1.5, including:
-
-- Netmiko;
-- NETCONF;
-- `ncclient`;
-- RESTCONF; and
-- YANG-based device models.
+The V1.5 product direction adds one Cisco IOS XE NETCONF path while retaining broader alternative device-automation technologies as separate engineering or learning work.
 
 These technologies serve different learning and architectural purposes and do not automatically replace the V1 CLI transport decision.
 
@@ -61,7 +55,7 @@ Using synchronous operation initially keeps V1 simple while preserving a path to
 
 Keeping Scrapli behind platform-owned interfaces prevents the transport library from becoming part of the domain model.
 
-This separation also allows alternative device interaction mechanisms to be introduced later without redesigning core orchestration.
+This separation provides useful adapter seams, although V1 branch workflows still require an explicit shared composition boundary before multiple access mechanisms can be selected consistently.
 
 For example:
 
@@ -76,22 +70,18 @@ platform-owned state / execution interfaces
         │      ↓
         │    ncclient
         │
-        └── RESTCONF
-               ↓
-             HTTP client
+        └── future justified mechanism
 ```
 
 The exact implementation boundaries may evolve, but the core platform should remain independent from any individual transport library.
 
 ## Relationship to the V1.5 Roadmap
 
-V1.5 introduces additional device-automation technologies for both engineering breadth and standards-based automation.
-
-These technologies have different roles.
+V1.5 adds NETCONF as the sole required production model-driven write protocol while broader technologies remain separate engineering or learning work in the same repository.
 
 ### Netmiko
 
-Netmiko will be practiced as an alternative network CLI automation library.
+Netmiko may be practiced as an alternative network CLI automation library.
 
 This provides experience with another widely adopted implementation and allows comparison of:
 
@@ -123,13 +113,13 @@ Practical work will include:
 - RPC handling; and
 - NETCONF error diagnosis.
 
-Where architecturally useful, a NETCONF adapter may be introduced behind platform-owned interfaces.
+V1.5 will introduce a bounded NETCONF adapter behind platform-owned interfaces. The concrete IOS XE model and execution artifact remain evidence-driven decisions.
 
 ### RESTCONF
 
 RESTCONF provides another standards-based device-management interface.
 
-V1.5 will use RESTCONF for practical IOS XE automation involving:
+RESTCONF may be used for practical IOS XE automation involving:
 
 - YANG-derived resource paths;
 - JSON payloads;
@@ -139,7 +129,7 @@ V1.5 will use RESTCONF for practical IOS XE automation involving:
 - HTTP status handling; and
 - error processing.
 
-A RESTCONF adapter may be integrated into the flagship platform where doing so demonstrates a meaningful transport or execution abstraction.
+A RESTCONF adapter may be integrated into the flagship platform only when a distinct engineering requirement justifies it.
 
 RESTCONF should not be added merely to duplicate working CLI functionality without architectural purpose.
 
@@ -149,7 +139,7 @@ YANG provides the data-model foundation for NETCONF and RESTCONF work.
 
 It is therefore conceptually different from the CLI access decision made by this ADR.
 
-V1.5 will use YANG to develop practical understanding of:
+The NETCONF implementation requires focused YANG model inspection. Broader practical work may develop understanding of:
 
 - native Cisco models;
 - IETF models;
@@ -189,7 +179,7 @@ Deferred rather than rejected.
 
 RESTCONF provides standards-based HTTP access to YANG-modeled data and is useful for IOS XE automation.
 
-It is introduced during V1.5 rather than being required to prove the initial V1 execution architecture.
+Production RESTCONF integration remains deferred unless a later engineering requirement justifies it; practical RESTCONF work may proceed independently.
 
 ### Direct Device API or Transport Logic in Core Services
 
@@ -209,7 +199,7 @@ Core planning, validation, remediation, and deployment orchestration should not 
 - no dependency on a specific lab environment;
 - core domain logic remains independent from Scrapli;
 - alternative interfaces can be added behind platform-owned boundaries;
-- V1.5 can introduce Netmiko, NETCONF, and RESTCONF without rewriting V1; and
+- V1.5 can introduce NETCONF without rewriting the V1 CLI path; and
 - different automation approaches can be compared using the same network problem domain.
 
 ### Negative

@@ -40,9 +40,9 @@ deployment outcome
 
 The controlled deployment workflow has been validated against real lab drift from detection through targeted repair and final desired-state compliance.
 
-The complete controlled lifecycle passed final representative CML acceptance across both managed devices and multiple supported drift categories. Release publication remains pending review and merge of the `1.0.0` release candidate, followed by tagging merged `main` and creating the GitHub release.
+The complete controlled lifecycle passed final representative CML acceptance across both managed devices and multiple supported drift categories. V1.0.0 is released and published.
 
-V1.5 is the next capability-development phase after the V1 release is published.
+V1.5 is the current capability-development phase.
 
 Future development is tracked through a defined V1 → V1.5 → V2 roadmap.
 
@@ -404,40 +404,37 @@ The platform roadmap is divided into three capability stages.
 
 V1 proves the core network automation architecture and controlled execution model.
 
-V1 engineering acceptance is complete. Release publication follows:
+V1 engineering acceptance and release publication are complete:
 
 ```text
-merge the reviewed 1.0.0 release candidate
+accepted V1 engineering criteria
         ↓
-tag merged main as v1.0.0
+version 1.0.0
         ↓
-publish the GitHub release
+tagged and published v1.0.0 release
 ```
 
 V1 is complete when supported automation works across multiple drift categories, unsafe or unsupported changes fail closed, important operational outcomes are validated, major failure paths are proven, and the representative acceptance scenarios pass.
 
 ### V1.5 — Model-Driven and Device-Automation Bridge
 
-V1.5 expands the project beyond CLI-centric automation into standards-based and commonly used enterprise automation mechanisms.
-
-Primary areas include:
+V1.5 preserves the released V1 lifecycle and branch-01 compatibility while adding one real production IOS XE model-driven path:
 
 ```text
-YANG
-NETCONF
-RESTCONF
-ncclient
-Netmiko
-Ansible
-Jinja2
-pyATS
-IOS XE Day-0 / on-box automation
-model-driven telemetry foundations
+existing Cisco IOS/Scrapli CLI path
+        +
+one Cisco IOS XE NETCONF read/write path
+        +
+backward-compatible access and composition evolution
+        +
+fresh write-boundary safety and approved-plan equivalence
+        +
+versioned non-CLI execution evidence when required
 ```
 
-V1.5 does not replace the V1 architecture.
+V1.5 does not replace the V1 architecture or require full NETCONF state parity. RESTCONF write parity and broader Ansible, Netmiko, Jinja2, pyATS, telemetry, Day-0, Guest Shell, and EEM work remain useful engineering and learning directions, but they are not `v1.5.0` production-package gates.
 
-Instead, it introduces additional device-management and automation mechanisms behind appropriate boundaries and through companion labs where integration into the flagship platform would not provide architectural value.
+See the [V1.5 Architecture Overview](docs/architecture/v1.5-overview.md) for the compatibility, safety, composition, scenario, and completion contracts.
 
 ### V2 — NetDevOps Automation Ecosystem
 
@@ -490,7 +487,7 @@ The flagship platform remains engineering-led.
 
 A technology is added to the platform only when it provides justified architectural or operational value.
 
-Technologies that are important for practical breadth but do not belong naturally in the flagship architecture can be implemented through focused companion labs.
+Technologies that are important for practical breadth but do not belong naturally in the flagship runtime can be implemented as focused, isolated practical work in this repository. Production dependencies, CI, secrets, ownership, and support level remain separate.
 
 Coverage is tracked against a mastery cycle:
 
